@@ -129,6 +129,24 @@ export const router = createBrowserRouter(
               lazy: loadInlinePromptsView,
             },
             {
+              path: 'skills',
+              element: <Navigate to="/skills/new" replace={true} />,
+            },
+            {
+              path: 'skills/new',
+              lazy: () =>
+                import('~/components/Skills/layouts/SkillsView').then((m) => ({
+                  Component: m.default,
+                })),
+            },
+            {
+              path: 'skills/:skillId',
+              lazy: () =>
+                import('~/components/Skills/layouts/SkillsView').then((m) => ({
+                  Component: m.default,
+                })),
+            },
+            {
               path: 'agents',
               element: (
                 <MarketplaceProvider>
