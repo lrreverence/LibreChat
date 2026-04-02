@@ -678,6 +678,7 @@
   "com_ui_skill_list": "Skills List",
   "com_ui_skills": "Skills",
   "com_ui_select_skill": "Select a skill or create a new one",
+  "com_ui_skill_not_found": "Skill not found",
   "com_ui_agent_api_keys": "Agent API Keys",
   "com_ui_agent_api_keys_description": "Create API keys to access agents remotely via the API",
   "com_ui_agent_category_aftersales": "After Sales",
