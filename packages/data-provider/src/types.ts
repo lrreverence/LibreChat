@@ -720,19 +720,19 @@ export type TDeleteSkillRequest = { _id: string };
 export type TSkillListParams = {
   folderId?: string;
   search?: string;
-  pageNumber?: string;
-  pageSize?: string;
-  sortBy?: string;
-  sortOrder?: string;
+  limit?: number;
+  after?: string;
   isPublic?: boolean;
   requiredPermission?: number;
 };
 
 export type TSkillListResponse = {
-  skills: TSkill[];
-  pageNumber: number;
-  pageSize: number;
-  pages: number;
+  object: string;
+  data: TSkill[];
+  first_id: string | null;
+  last_id: string | null;
+  has_more: boolean;
+  after: string | null;
 };
 
 export type TCreateSkillFolderRequest = { name: string };

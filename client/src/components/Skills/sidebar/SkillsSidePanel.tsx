@@ -31,13 +31,13 @@ export default function SkillsSidePanel({
   const foldersQuery = useListSkillFoldersQuery({ enabled: true });
 
   const filteredSkills = useMemo(() => {
-    const skills = skillsQuery.data?.skills ?? [];
+    const skills = skillsQuery.data?.data ?? [];
     if (!searchTerm) {
       return skills;
     }
     const term = searchTerm.toLowerCase();
     return skills.filter((s) => s.name.toLowerCase().includes(term));
-  }, [skillsQuery.data?.skills, searchTerm]);
+  }, [skillsQuery.data?.data, searchTerm]);
 
   const isLoading = skillsQuery.isLoading || foldersQuery.isLoading;
 

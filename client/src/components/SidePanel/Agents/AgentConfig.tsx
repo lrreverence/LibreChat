@@ -74,16 +74,16 @@ export default function AgentConfig() {
     permission: Permissions.USE,
   });
   const { data: skillsData } = useListSkillsQuery(
-    { pageSize: '100' },
+    { limit: 100 },
     { enabled: hasSkillsAccess },
   );
   const skillsMap = useMemo(() => {
     const map = new Map<string, string>();
-    for (const skill of skillsData?.skills ?? []) {
+    for (const skill of skillsData?.data ?? []) {
       map.set(skill._id, skill.name);
     }
     return map;
-  }, [skillsData?.skills]);
+  }, [skillsData?.data]);
 
   const { data: agentFiles = [] } = useGetAgentFiles(agent_id);
 

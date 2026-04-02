@@ -15,16 +15,16 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
   const localize = useLocalize();
   const { getValues, setValue } = useFormContext<AgentForm>();
   const [searchValue, setSearchValue] = useState('');
-  const { data: skillsData } = useListSkillsQuery({ pageSize: '100' });
+  const { data: skillsData } = useListSkillsQuery({ limit: 100 });
 
   const filteredSkills = useMemo(() => {
-    const skills = skillsData?.skills ?? [];
+    const skills = skillsData?.data ?? [];
     if (!searchValue) {
       return skills;
     }
     const lower = searchValue.toLowerCase();
     return skills.filter((s) => s.name.toLowerCase().includes(lower));
-  }, [skillsData?.skills, searchValue]);
+  }, [skillsData?.data, searchValue]);
 
   const handleToggleSkill = (skillId: string) => {
     const currentSkills: string[] = getValues('skills') ?? [];
