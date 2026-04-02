@@ -1,9 +1,12 @@
 import { format } from 'date-fns';
-import { TooltipAnchor } from '@librechat/client';
+import { Pencil } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button, TooltipAnchor } from '@librechat/client';
 import { User, Calendar, EarthIcon, Sparkles } from 'lucide-react';
 import { InvocationMode } from 'librechat-data-provider';
 import type { TSkill } from 'librechat-data-provider';
 import type { TranslationKeys } from '~/hooks';
+import DeleteSkill from '../dialogs/DeleteSkill';
 import { useLocalize, useAuthContext } from '~/hooks';
 
 const invocationLabelMap: Record<InvocationMode, TranslationKeys> = {
@@ -14,13 +17,16 @@ const invocationLabelMap: Record<InvocationMode, TranslationKeys> = {
 
 interface SkillDetailHeaderProps {
   skill: TSkill;
+  showActions?: boolean;
 }
 
-const SkillDetailHeader = ({ skill }: SkillDetailHeaderProps) => {
+const SkillDetailHeader = ({ skill, showActions = true }: SkillDetailHeaderProps) => {
   const localize = useLocalize();
+  const navigate = useNavigate();
   const { user } = useAuthContext();
   const formattedDate = skill.createdAt ? format(new Date(skill.createdAt), 'MMM d, yyyy') : null;
-  const isShared = skill.author !== user?.id && Boolean(skill.authorName);
+  const isOwner = skill.author === user?.id;
+  const isShared = !isOwner && Boolean(skill.authorName);
   const isPublic = skill.isPublic === true;
 
   return (
@@ -65,6 +71,30 @@ const SkillDetailHeader = ({ skill }: SkillDetailHeaderProps) => {
           )}
         </div>
       </div>
+      {showActions && isOwner && (
+        <div className="flex shrink-0 items-center gap-2">
+          <TooltipAnchor
+            description={localize('com_ui_edit')}
+            side="bottom"
+            render={
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-9"
+                aria-label={localize('com_ui_edit_skill')}
+                onClick={() => navigate(`/skills/${skill._id}/edit`)}
+              >
+                <Pencil className="size-5" aria-hidden="true" />
+              </Button>
+            }
+          />
+          <DeleteSkill
+            skillId={skill._id}
+            skillName={skill.name}
+            onDelete={() => navigate('/skills')}
+          />
+        </div>
+      )}
     </div>
   );
 };
