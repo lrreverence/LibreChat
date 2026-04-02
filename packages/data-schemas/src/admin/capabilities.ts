@@ -38,6 +38,8 @@ export const SystemCapabilities = {
   /** Reserved — not yet enforced by any middleware. */
   READ_ASSISTANTS: 'read:assistants',
   MANAGE_ASSISTANTS: 'manage:assistants',
+  READ_SKILLS: 'read:skills',
+  MANAGE_SKILLS: 'manage:skills',
 } as const;
 
 /**
@@ -53,6 +55,7 @@ export const CapabilityImplications: Partial<Record<BaseSystemCapability, BaseSy
     [SystemCapabilities.MANAGE_AGENTS]: [SystemCapabilities.READ_AGENTS],
     [SystemCapabilities.MANAGE_PROMPTS]: [SystemCapabilities.READ_PROMPTS],
     [SystemCapabilities.MANAGE_ASSISTANTS]: [SystemCapabilities.READ_ASSISTANTS],
+    [SystemCapabilities.MANAGE_SKILLS]: [SystemCapabilities.READ_SKILLS],
   };
 
 // ---------------------------------------------------------------------------
@@ -207,6 +210,8 @@ export const CAPABILITY_CATEGORIES: CapabilityCategory[] = [
       SystemCapabilities.MANAGE_ASSISTANTS,
       SystemCapabilities.READ_ASSISTANTS,
       SystemCapabilities.MANAGE_MCP_SERVERS,
+      SystemCapabilities.MANAGE_SKILLS,
+      SystemCapabilities.READ_SKILLS,
     ],
   },
   {
