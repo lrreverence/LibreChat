@@ -331,6 +331,34 @@ export type UpdateMarketplacePermOptions = MutationOptions<
   types.TError | null | undefined
 >;
 
+/* Skill mutations */
+
+export type CreateSkillBody = types.TCreateSkillRequest;
+export type CreateSkillOptions = MutationOptions<types.TSkill, CreateSkillBody>;
+
+export type UpdateSkillVariables = { _id: string; data: Partial<types.TCreateSkillRequest> };
+export type UpdateSkillOptions = MutationOptions<types.TSkill, UpdateSkillVariables>;
+
+export type DeleteSkillBody = { _id: string };
+export type DeleteSkillOptions = MutationOptions<void, DeleteSkillBody>;
+
+export type UpdateSkillPermVars = UpdatePermVars<p.TSkillPermissions>;
+export type UpdateSkillPermOptions = MutationOptions<
+  UpdatePermResponse,
+  UpdateSkillPermVars,
+  unknown,
+  types.TError | null | undefined
+>;
+
+export type CreateSkillFolderBody = types.TCreateSkillFolderRequest;
+export type CreateSkillFolderOptions = MutationOptions<types.TSkillFolder, CreateSkillFolderBody>;
+
+export type UpdateSkillFolderBody = types.TUpdateSkillFolderRequest;
+export type UpdateSkillFolderOptions = MutationOptions<types.TSkillFolder, UpdateSkillFolderBody>;
+
+export type DeleteSkillFolderBody = types.TDeleteSkillFolderRequest;
+export type DeleteSkillFolderOptions = MutationOptions<void, DeleteSkillFolderBody>;
+
 export type UpdateConversationTagOptions = MutationOptions<
   types.TConversationTag,
   types.TConversationTagRequest

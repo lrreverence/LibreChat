@@ -676,3 +676,67 @@ export type TBalanceResponse = {
   lastRefill?: Date;
   refillAmount?: number;
 };
+
+/* Skills */
+
+export enum InvocationMode {
+  auto = 'auto',
+  manual = 'manual',
+  both = 'both',
+}
+
+export type TSkill = {
+  _id: string;
+  name: string;
+  description: string;
+  content: string;
+  folderId?: string;
+  invocationMode: InvocationMode;
+  author: string;
+  authorName: string;
+  projectIds?: string[];
+  isPublic?: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TSkillFolder = {
+  _id: string;
+  name: string;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TCreateSkillRequest = Omit<
+  TSkill,
+  '_id' | 'author' | 'authorName' | 'createdAt' | 'updatedAt'
+>;
+
+export type TUpdateSkillRequest = Partial<TCreateSkillRequest> & { _id: string };
+
+export type TDeleteSkillRequest = { _id: string };
+
+export type TSkillListParams = {
+  folderId?: string;
+  search?: string;
+  pageNumber?: string;
+  pageSize?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  isPublic?: boolean;
+  requiredPermission?: number;
+};
+
+export type TSkillListResponse = {
+  skills: TSkill[];
+  pageNumber: number;
+  pageSize: number;
+  pages: number;
+};
+
+export type TCreateSkillFolderRequest = { name: string };
+
+export type TUpdateSkillFolderRequest = { _id: string; name: string };
+
+export type TDeleteSkillFolderRequest = { _id: string };

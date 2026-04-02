@@ -268,6 +268,36 @@ export const agents = ({ path = '', options }: { path?: string; options?: object
   return url;
 };
 
+export const skills = ({ path = '', options }: { path?: string; options?: object }) => {
+  let url = `${BASE_URL}/api/skills`;
+
+  if (path && path !== '') {
+    url += `/${path}`;
+  }
+
+  if (options && Object.keys(options).length > 0) {
+    const queryParams = new URLSearchParams(options as Record<string, string>).toString();
+    url += `?${queryParams}`;
+  }
+
+  return url;
+};
+
+export const skillFolders = ({ path = '', options }: { path?: string; options?: object }) => {
+  let url = `${BASE_URL}/api/skills/folders`;
+
+  if (path && path !== '') {
+    url += `/${path}`;
+  }
+
+  if (options && Object.keys(options).length > 0) {
+    const queryParams = new URLSearchParams(options as Record<string, string>).toString();
+    url += `?${queryParams}`;
+  }
+
+  return url;
+};
+
 export const activeJobs = () => `${BASE_URL}/api/agents/chat/active`;
 
 export const mcp = {
@@ -374,6 +404,7 @@ export const updateRemoteAgentsPermissions = (roleName: string) =>
 
 export const updateMarketplacePermissions = (roleName: string) =>
   `${getRole(roleName)}/marketplace`;
+export const updateSkillPermissions = (roleName: string) => `${getRole(roleName)}/skills`;
 
 /* Conversation Tags */
 export const conversationTags = (tag?: string) =>

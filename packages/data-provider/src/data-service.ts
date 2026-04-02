@@ -922,6 +922,65 @@ export function updateMarketplacePermissions(
   return request.put(endpoints.updateMarketplacePermissions(variables.roleName), variables.updates);
 }
 
+export function updateSkillPermissions(
+  variables: m.UpdateSkillPermVars,
+): Promise<m.UpdatePermResponse> {
+  return request.put(endpoints.updateSkillPermissions(variables.roleName), variables.updates);
+}
+
+/**
+ * Skills
+ */
+
+export const createSkill = (data: t.TCreateSkillRequest): Promise<t.TSkill> => {
+  return request.post(endpoints.skills({}), data);
+};
+
+export const getSkillById = ({ _id }: { _id: string }): Promise<t.TSkill> => {
+  return request.get(endpoints.skills({ path: _id }));
+};
+
+export const updateSkill = ({
+  _id,
+  data,
+}: {
+  _id: string;
+  data: Partial<t.TCreateSkillRequest>;
+}): Promise<t.TSkill> => {
+  return request.patch(endpoints.skills({ path: _id }), data);
+};
+
+export const deleteSkill = ({ _id }: { _id: string }): Promise<void> => {
+  return request.delete(endpoints.skills({ path: _id }));
+};
+
+export const listSkills = (params: t.TSkillListParams): Promise<t.TSkillListResponse> => {
+  return request.get(endpoints.skills({ options: params }));
+};
+
+/**
+ * Skill Folders
+ */
+
+export const listSkillFolders = (): Promise<t.TSkillFolder[]> => {
+  return request.get(endpoints.skillFolders({}));
+};
+
+export const createSkillFolder = (data: t.TCreateSkillFolderRequest): Promise<t.TSkillFolder> => {
+  return request.post(endpoints.skillFolders({}), data);
+};
+
+export const updateSkillFolder = ({
+  _id,
+  name,
+}: t.TUpdateSkillFolderRequest): Promise<t.TSkillFolder> => {
+  return request.patch(endpoints.skillFolders({ path: _id }), { name });
+};
+
+export const deleteSkillFolder = ({ _id }: t.TDeleteSkillFolderRequest): Promise<void> => {
+  return request.delete(endpoints.skillFolders({ path: _id }));
+};
+
 /* Tags */
 export function getConversationTags(): Promise<t.TConversationTagsResponse> {
   return request.get(endpoints.conversationTags());

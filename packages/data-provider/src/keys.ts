@@ -65,6 +65,10 @@ export enum QueryKeys {
   activeJobs = 'activeJobs',
   /* Agent API Keys */
   agentApiKeys = 'agentApiKeys',
+  /* Skills */
+  skills = 'skills',
+  skill = 'skill',
+  skillFolders = 'skillFolders',
 }
 
 // Dynamic query keys that require parameters
@@ -97,4 +101,10 @@ export enum MutationKeys {
   enableTwoFactor = 'enableTwoFactor',
   verifyTwoFactor = 'verifyTwoFactor',
   updateMemoryPreferences = 'updateMemoryPreferences',
+  createSkill = 'createSkill',
+  updateSkill = 'updateSkill',
+  deleteSkill = 'deleteSkill',
+  createSkillFolder = 'createSkillFolder',
+  updateSkillFolder = 'updateSkillFolder',
+  deleteSkillFolder = 'deleteSkillFolder',
 }
