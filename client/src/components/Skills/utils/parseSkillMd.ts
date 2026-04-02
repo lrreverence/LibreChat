@@ -1,0 +1,74 @@
+import type { InvocationMode } from 'librechat-data-provider';
+
+export interface ParsedSkillMd {
+  name: string;
+  description: string;
+  invocationMode: InvocationMode | '';
+  content: string;
+}
+
+const FRONTMATTER_DELIMITER = '---';
+
+/**
+ * Parses a SKILL.md file into structured fields.
+ *
+ * Expected format:
+ * ```
+ * ---
+ * name: My Skill
+ * description: Does something useful
+ * invocationMode: auto
+ * ---
+ * # Skill content body
+ * ...
+ * ```
+ *
+ * Returns extracted frontmatter fields plus the remaining markdown body as `content`.
+ * Unrecognised frontmatter keys are silently ignored.
+ */
+export function parseSkillMd(raw: string): ParsedSkillMd {
+  const trimmed = raw.trim();
+  const result: ParsedSkillMd = {
+    name: '',
+    description: '',
+    invocationMode: '',
+    content: '',
+  };
+
+  if (!trimmed.startsWith(FRONTMATTER_DELIMITER)) {
+    result.content = trimmed;
+    return result;
+  }
+
+  const afterFirstDelimiter = trimmed.slice(FRONTMATTER_DELIMITER.length);
+  const closingIndex = afterFirstDelimiter.indexOf(`\n${FRONTMATTER_DELIMITER}`);
+
+  if (closingIndex === -1) {
+    result.content = trimmed;
+    return result;
+  }
+
+  const frontmatterBlock = afterFirstDelimiter.slice(0, closingIndex);
+  const body = afterFirstDelimiter.slice(closingIndex + 1 + FRONTMATTER_DELIMITER.length);
+
+  const lines = frontmatterBlock.split('\n');
+  for (const line of lines) {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex === -1) {
+      continue;
+    }
+    const key = line.slice(0, colonIndex).trim().toLowerCase();
+    const value = line.slice(colonIndex + 1).trim();
+
+    if (key === 'name') {
+      result.name = value;
+    } else if (key === 'description') {
+      result.description = value;
+    } else if (key === 'invocationmode') {
+      result.invocationMode = value as InvocationMode;
+    }
+  }
+
+  result.content = body.trim();
+  return result;
+}
