@@ -147,6 +147,13 @@ export const router = createBrowserRouter(
                 })),
             },
             {
+              path: 'skills/:skillId/:action',
+              lazy: () =>
+                import('~/components/Skills/layouts/SkillsView').then((m) => ({
+                  Component: m.default,
+                })),
+            },
+            {
               path: 'agents',
               element: (
                 <MarketplaceProvider>

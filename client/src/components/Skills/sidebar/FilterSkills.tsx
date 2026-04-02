@@ -1,8 +1,7 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Button, FilterInput, TooltipAnchor } from '@librechat/client';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
+import { FilterInput } from '@librechat/client';
+import { CreateSkillMenu } from '~/components/Skills/buttons';
 import { useHasAccess, useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -30,25 +29,7 @@ export default function FilterSkills({
         onChange={onSearchChange}
         containerClassName="flex-1"
       />
-      {hasCreateAccess && (
-        <TooltipAnchor
-          description={localize('com_ui_create_skill')}
-          side="bottom"
-          render={
-            <Button
-              asChild
-              variant="outline"
-              size="icon"
-              className="size-9 shrink-0 bg-transparent"
-              aria-label={localize('com_ui_create_skill')}
-            >
-              <Link to="/skills/new">
-                <Plus className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-          }
-        />
-      )}
+      {hasCreateAccess && <CreateSkillMenu />}
     </div>
   );
 }
