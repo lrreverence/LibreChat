@@ -18,6 +18,10 @@ const {
   deleteSkill,
   getRoleByName,
   getListSkillsByAccess,
+  getSkillFolders,
+  createSkillFolder,
+  updateSkillFolder,
+  deleteSkillFolder,
 } = require('~/models');
 const {
   findPubliclyAccessibleResources,
@@ -170,6 +174,83 @@ router.get('/', async (req, res) => {
   } catch (error) {
     logger.error('[listSkills]', error);
     res.status(500).json({ error: 'Error listing skills' });
+  }
+});
+
+/**
+ * Lists skill folders for the authenticated user.
+ * @route GET /api/skills/folders
+ * @returns {Array} 200 - Array of folder documents
+ */
+router.get('/folders', async (req, res) => {
+  try {
+    const folders = await getSkillFolders(req.user.id);
+    res.status(200).json(folders);
+  } catch (error) {
+    logger.error('[listSkillFolders]', error);
+    res.status(500).json({ error: 'Error listing skill folders' });
+  }
+});
+
+/**
+ * Creates a new skill folder.
+ * @route POST /api/skills/folders
+ * @param {object} req.body - Must include `name`.
+ * @returns {object} 200 - Created folder document
+ */
+router.post('/folders', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Folder name is required and must be a non-empty string' });
+    }
+
+    const folder = await createSkillFolder({ name: name.trim(), author: req.user.id });
+    res.status(200).json(folder);
+  } catch (error) {
+    logger.error('[createSkillFolder]', error);
+    res.status(500).json({ error: 'Error creating skill folder' });
+  }
+});
+
+/**
+ * Updates a skill folder by ID.
+ * @route PATCH /api/skills/folders/:folderId
+ * @param {string} req.params.folderId - Folder ObjectId.
+ * @param {object} req.body - Must include `name`.
+ * @returns {object} 200 - Updated folder document
+ */
+router.patch('/folders/:folderId', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Folder name is required and must be a non-empty string' });
+    }
+
+    const folder = await updateSkillFolder({ _id: req.params.folderId, name: name.trim() });
+    if (!folder) {
+      return res.status(404).json({ error: 'Folder not found' });
+    }
+    res.status(200).json(folder);
+  } catch (error) {
+    logger.error('[updateSkillFolder]', error);
+    res.status(500).json({ error: 'Error updating skill folder' });
+  }
+});
+
+/**
+ * Deletes a skill folder by ID.
+ * @route DELETE /api/skills/folders/:folderId
+ * @param {string} req.params.folderId - Folder ObjectId.
+ * @returns {object} 200 - Deletion confirmation
+ */
+router.delete('/folders/:folderId', async (req, res) => {
+  try {
+    await deleteSkillFolder({ _id: req.params.folderId });
+    res.status(200).json({ message: 'Folder deleted' });
+  } catch (error) {
+    logger.error('[deleteSkillFolder]', error);
+    res.status(500).json({ error: 'Error deleting skill folder' });
   }
 });
 
