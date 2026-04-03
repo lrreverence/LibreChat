@@ -24,6 +24,7 @@ export interface IAgent extends Omit<Document, 'model'> {
   tools?: string[];
   tool_kwargs?: Array<unknown>;
   actions?: string[];
+  skills?: string[];
   author: Types.ObjectId;
   authorName?: string;
   hide_sequential_outputs?: boolean;

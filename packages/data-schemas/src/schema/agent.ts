@@ -51,6 +51,10 @@ const agentSchema = new Schema<IAgent>(
       type: [String],
       default: undefined,
     },
+    skills: {
+      type: [String],
+      default: undefined,
+    },
     author: {
       type: Schema.Types.ObjectId,
       ref: 'User',
