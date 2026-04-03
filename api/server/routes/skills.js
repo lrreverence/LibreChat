@@ -1,6 +1,7 @@
 const express = require('express');
+const { ObjectId } = require('mongodb');
 const { generateCheckAccess } = require('@librechat/api');
-const { logger } = require('@librechat/data-schemas');
+const { logger, escapeRegExp } = require('@librechat/data-schemas');
 const {
   Permissions,
   ResourceType,
@@ -10,8 +11,19 @@ const {
   PermissionTypes,
 } = require('librechat-data-provider');
 const { requireJwtAuth, canAccessSkillResource } = require('~/server/middleware');
-const { createSkill, getSkillById, updateSkill, deleteSkill, getRoleByName } = require('~/models');
-const { grantPermission } = require('~/server/services/PermissionService');
+const {
+  createSkill,
+  getSkillById,
+  updateSkill,
+  deleteSkill,
+  getRoleByName,
+  getListSkillsByAccess,
+} = require('~/models');
+const {
+  findPubliclyAccessibleResources,
+  findAccessibleResources,
+  grantPermission,
+} = require('~/server/services/PermissionService');
 
 const router = express.Router();
 
@@ -69,6 +81,95 @@ router.post('/', checkSkillCreate, async (req, res) => {
   } catch (error) {
     logger.error('[createSkill]', error);
     res.status(500).json({ error: 'Error creating skill' });
+  }
+});
+
+/**
+ * Lists skills with ACL-aware filtering, public skill merging, and cursor pagination.
+ * @route GET /api/skills
+ * @param {string} [req.query.search] - Name search filter (regex).
+ * @param {string} [req.query.folderId] - Filter by folder ID.
+ * @param {string} [req.query.isPublic] - Filter to public skills only ('true').
+ * @param {string} [req.query.limit] - Page size for cursor pagination.
+ * @param {string} [req.query.after] - Cursor for next page.
+ * @returns {object} 200 - Paginated list with { object, data, first_id, last_id, has_more, after }
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { search, folderId, isPublic, limit, after } = req.query;
+
+    const [accessibleIds, publiclyAccessibleIds] = await Promise.all([
+      findAccessibleResources({
+        userId: req.user.id,
+        role: req.user.role,
+        resourceType: ResourceType.SKILL,
+        requiredPermissions: PermissionBits.VIEW,
+      }),
+      findPubliclyAccessibleResources({
+        resourceType: ResourceType.SKILL,
+        requiredPermissions: PermissionBits.VIEW,
+      }),
+    ]);
+
+    const publicIdSet = new Set(publiclyAccessibleIds.map((id) => id.toString()));
+
+    const mergedIdSet = new Set();
+    const mergedIds = [];
+    for (const id of accessibleIds) {
+      const key = id.toString();
+      if (!mergedIdSet.has(key)) {
+        mergedIdSet.add(key);
+        mergedIds.push(id);
+      }
+    }
+    for (const id of publiclyAccessibleIds) {
+      const key = id.toString();
+      if (!mergedIdSet.has(key)) {
+        mergedIdSet.add(key);
+        mergedIds.push(new ObjectId(key));
+      }
+    }
+
+    const otherParams = {};
+    if (search) {
+      otherParams.name = new RegExp(escapeRegExp(search), 'i');
+    }
+    if (folderId) {
+      otherParams.folderId = folderId;
+    }
+    if (isPublic === 'true') {
+      otherParams.isPublic = true;
+    }
+
+    const result = await getListSkillsByAccess({
+      accessibleIds: mergedIds,
+      otherParams,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      after: after || undefined,
+    });
+
+    if (!result) {
+      return res.status(200).json({
+        object: 'list',
+        data: [],
+        first_id: null,
+        last_id: null,
+        has_more: false,
+        after: null,
+      });
+    }
+
+    result.data = result.data.map((skill) => {
+      if (publicIdSet.has(skill._id.toString())) {
+        skill.isPublic = true;
+      }
+      return skill;
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error('[listSkills]', error);
+    res.status(500).json({ error: 'Error listing skills' });
   }
 });
 
