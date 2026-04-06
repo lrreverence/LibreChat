@@ -38,3 +38,4 @@ export * from './web';
 export * from './mcp';
 /* Skills */
 export * from './skill';
+export * from './skillNode';
