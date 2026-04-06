@@ -12,10 +12,6 @@ const skillSchema = new Schema<ISkillDocument>(
       type: String,
       default: '',
     },
-    content: {
-      type: String,
-      required: true,
-    },
     folderId: {
       type: Schema.Types.ObjectId,
       ref: 'SkillFolder',

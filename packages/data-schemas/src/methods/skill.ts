@@ -130,7 +130,7 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
     const findQuery = Skill.find(matchQuery)
       .sort({ updatedAt: -1, _id: 1 })
       .select(
-        'name description content folderId invocationMode author authorName projectIds isPublic createdAt updatedAt',
+        'name description folderId invocationMode author authorName projectIds isPublic createdAt updatedAt',
       );
 
     if (isPaginated && normalizedLimit) {

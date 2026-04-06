@@ -1,4 +1,4 @@
-import type { Model, Types } from 'mongoose';
+import type { Model } from 'mongoose';
 import type { ISkillNodeDocument } from '~/types';
 import logger from '~/config/winston';
 
@@ -61,7 +61,7 @@ export function createSkillNodeMethods(mongoose: typeof import('mongoose'), deps
     return { message: 'Node deleted successfully' };
   }
 
-  async function deleteDescendants(parentId: Types.ObjectId, SkillNode: Model<ISkillNodeDocument>) {
+  async function deleteDescendants(parentId: unknown, SkillNode: Model<ISkillNodeDocument>) {
     const children = await SkillNode.find({ parentId }).lean();
     for (const child of children) {
       if (child.type === 'folder') {
