@@ -69,6 +69,8 @@ export enum QueryKeys {
   skills = 'skills',
   skill = 'skill',
   skillFolders = 'skillFolders',
+  skillTree = 'skillTree',
+  skillNodeContent = 'skillNodeContent',
 }
 
 // Dynamic query keys that require parameters
@@ -107,4 +109,8 @@ export enum MutationKeys {
   createSkillFolder = 'createSkillFolder',
   updateSkillFolder = 'updateSkillFolder',
   deleteSkillFolder = 'deleteSkillFolder',
+  createSkillNode = 'createSkillNode',
+  updateSkillNode = 'updateSkillNode',
+  deleteSkillNode = 'deleteSkillNode',
+  updateSkillNodeContent = 'updateSkillNodeContent',
 }

@@ -689,7 +689,6 @@ export type TSkill = {
   _id: string;
   name: string;
   description: string;
-  content: string;
   folderId?: string;
   invocationMode: InvocationMode;
   author: string;
@@ -740,3 +739,34 @@ export type TCreateSkillFolderRequest = { name: string };
 export type TUpdateSkillFolderRequest = { _id: string; name: string };
 
 export type TDeleteSkillFolderRequest = { _id: string };
+
+/** Skill Nodes (filesystem tree) */
+export type TSkillNode = {
+  _id: string;
+  skillId: string;
+  parentId: string | null;
+  type: 'file' | 'folder';
+  name: string;
+  fileId?: string;
+  order: number;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TSkillTreeResponse = {
+  nodes: TSkillNode[];
+};
+
+export type TCreateSkillNodeRequest = {
+  type: 'file' | 'folder';
+  name: string;
+  parentId?: string | null;
+  order?: number;
+};
+
+export type TUpdateSkillNodeRequest = {
+  name?: string;
+  parentId?: string | null;
+  order?: number;
+};
