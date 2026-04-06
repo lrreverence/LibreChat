@@ -690,6 +690,8 @@
   "com_ui_skill_create_error": "Failed to create skill. Please try again.",
   "com_ui_skill_name_required": "Skill name is required",
   "com_ui_skill_update_error": "Failed to update skill. Please try again.",
+  "com_ui_skills_selected_count": "{{count}} skills selected",
+  "com_ui_count_selected": "{{count}} selected",
   "com_ui_skill_updated": "Skill updated successfully",
   "com_ui_delete_skill": "Delete Skill?",
   "com_ui_delete_skill_confirm_var": "Are you sure you want to delete \"{{0}}\"? This action cannot be undone.",

@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
-import { Search, X, Plus, Check } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Search, Check, FolderOpen, ListFilter, EarthIcon, User } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
-import { Dialog, DialogPanel, DialogTitle, Description } from '@headlessui/react';
+import { OGDialog, OGDialogContent } from '@librechat/client';
+import type { TSkill, TSkillFolder } from 'librechat-data-provider';
 import type { AgentForm } from '~/common';
-import { useListSkillsQuery } from '~/data-provider';
-import { useLocalize } from '~/hooks';
+import { useListSkillsQuery, useListSkillFoldersQuery } from '~/data-provider';
+import { useLocalize, useAuthContext } from '~/hooks';
+import { cn } from '~/utils';
 
 interface SkillSelectDialogProps {
   isOpen: boolean;
@@ -13,130 +15,321 @@ interface SkillSelectDialogProps {
 
 function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
   const localize = useLocalize();
+  const { user } = useAuthContext();
   const { getValues, setValue } = useFormContext<AgentForm>();
   const [searchValue, setSearchValue] = useState('');
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+
   const { data: skillsData } = useListSkillsQuery({ limit: 100 });
+  const { data: folders = [] } = useListSkillFoldersQuery();
 
-  const filteredSkills = useMemo(() => {
-    const skills = skillsData?.data ?? [];
-    if (!searchValue) {
-      return skills;
-    }
-    const lower = searchValue.toLowerCase();
-    return skills.filter((s) => s.name.toLowerCase().includes(lower));
-  }, [skillsData?.data, searchValue]);
+  const allSkills = useMemo(() => skillsData?.data ?? [], [skillsData?.data]);
 
-  const handleToggleSkill = (skillId: string) => {
-    const currentSkills: string[] = getValues('skills') ?? [];
-    if (currentSkills.includes(skillId)) {
-      setValue(
-        'skills',
-        currentSkills.filter((id) => id !== skillId),
-      );
-    } else {
-      setValue('skills', [...currentSkills, skillId]);
-    }
-  };
+  const selectedSkills: string[] = getValues('skills') ?? [];
 
-  const isAttached = (skillId: string): boolean => {
-    const currentSkills: string[] = getValues('skills') ?? [];
-    return currentSkills.includes(skillId);
-  };
+  const handleToggleSkill = useCallback(
+    (skillId: string) => {
+      const current: string[] = getValues('skills') ?? [];
+      if (current.includes(skillId)) {
+        setValue(
+          'skills',
+          current.filter((id) => id !== skillId),
+        );
+      } else {
+        setValue('skills', [...current, skillId]);
+      }
+    },
+    [getValues, setValue],
+  );
 
-  const handleClose = () => {
+  const isAttached = useCallback(
+    (skillId: string): boolean => {
+      const current: string[] = getValues('skills') ?? [];
+      return current.includes(skillId);
+    },
+    [getValues],
+  );
+
+  const handleClose = useCallback(() => {
     setIsOpen(false);
     setSearchValue('');
+    setActiveFolder(null);
+  }, [setIsOpen]);
+
+  const { grouped, folderCounts } = useMemo(() => {
+    const fMap = new Map<string, TSkillFolder>();
+    for (const folder of folders) {
+      fMap.set(folder._id, folder);
+    }
+
+    const buckets = new Map<string | null, TSkill[]>();
+    for (const skill of allSkills) {
+      const key = skill.folderId && fMap.has(skill.folderId) ? skill.folderId : null;
+      const bucket = buckets.get(key);
+      if (bucket) {
+        bucket.push(skill);
+      } else {
+        buckets.set(key, [skill]);
+      }
+    }
+
+    const counts = new Map<string | null, number>();
+    for (const [key, skills] of buckets) {
+      counts.set(key, skills.length);
+    }
+
+    return { grouped: buckets, folderCounts: counts };
+  }, [allSkills, folders]);
+
+  const visibleSkills = useMemo(() => {
+    if (searchValue) {
+      const lower = searchValue.toLowerCase();
+      const filtered = allSkills.filter((s) => s.name.toLowerCase().includes(lower));
+      return { flat: filtered, grouped: null };
+    }
+
+    if (activeFolder !== null) {
+      const folderSkills =
+        activeFolder === '__uncategorized__'
+          ? (grouped.get(null) ?? [])
+          : (grouped.get(activeFolder) ?? []);
+      return { flat: folderSkills, grouped: null };
+    }
+
+    return { flat: null, grouped };
+  }, [allSkills, searchValue, activeFolder, grouped]);
+
+  const renderSkillCard = (skill: TSkill) => {
+    const selected = isAttached(skill._id);
+    const isShared = skill.author !== user?.id && Boolean(skill.authorName);
+    const isPublic = skill.isPublic === true;
+    return (
+      <button
+        key={skill._id}
+        type="button"
+        role="option"
+        aria-selected={selected}
+        onClick={() => handleToggleSkill(skill._id)}
+        className={cn(
+          'flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all duration-200',
+          selected
+            ? 'border-green-500/60 bg-green-500/[0.06]'
+            : 'border-border-light hover:border-border-medium hover:bg-surface-tertiary',
+        )}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-text-primary">{skill.name}</p>
+          {skill.description && (
+            <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-text-secondary">
+              {skill.description}
+            </p>
+          )}
+          {(isShared || isPublic) && (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              {isShared && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-2 py-0.5 text-[10px] text-text-tertiary">
+                  <User className="size-2.5" aria-hidden="true" />
+                  {skill.authorName}
+                </span>
+              )}
+              {isPublic && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-2 py-0.5 text-[10px] text-text-tertiary">
+                  <EarthIcon className="size-2.5" aria-hidden="true" />
+                  {localize('com_ui_sr_public_skill')}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <span
+          className={cn(
+            'mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200',
+            selected ? 'border-green-500 bg-green-500' : 'border-border-medium bg-transparent',
+          )}
+          aria-hidden="true"
+        >
+          <Check
+            className={cn(
+              'size-3 text-white transition-all duration-200',
+              selected ? 'scale-100 opacity-100' : 'scale-50 opacity-0',
+            )}
+          />
+        </span>
+      </button>
+    );
   };
 
   return (
-    <Dialog open={isOpen} onClose={handleClose} className="relative z-[102]">
-      <div className="fixed inset-0 bg-surface-primary opacity-60 transition-opacity dark:opacity-80" />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel className="relative max-h-[90vh] w-full transform overflow-hidden overflow-y-auto rounded-lg bg-surface-secondary text-left shadow-xl transition-all max-sm:h-full sm:mx-7 sm:my-8 sm:max-w-2xl lg:max-w-3xl">
-          <div className="flex items-center justify-between border-b-[1px] border-border-medium px-4 pb-4 pt-5 sm:p-6">
-            <div className="flex items-center">
-              <div className="text-center sm:text-left">
-                <DialogTitle className="text-lg font-medium leading-6 text-text-primary">
-                  {localize('com_ui_add_skills')}
-                </DialogTitle>
-                <Description className="text-sm text-text-secondary">
-                  {localize('com_ui_select_skills_description')}
-                </Description>
-              </div>
-            </div>
-            <button
-              onClick={handleClose}
-              className="inline-block rounded-full text-text-secondary transition-colors hover:text-text-primary"
-              aria-label={localize('com_ui_close')}
-              type="button"
-            >
-              <X aria-hidden="true" />
-            </button>
+    <OGDialog open={isOpen} onOpenChange={setIsOpen}>
+      <OGDialogContent
+        className="w-11/12 max-w-[960px] overflow-hidden rounded-2xl border-border-medium p-0 shadow-xl md:max-h-[85vh]"
+        showCloseButton={false}
+      >
+        {/* Header */}
+        <div className="flex flex-col gap-4 px-6 pb-0 pt-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-text-primary">
+              {localize('com_ui_add_skills')}{' '}
+              <span className="text-sm font-normal text-text-tertiary">
+                ({localize('com_ui_count_selected', { count: selectedSkills.length })})
+              </span>
+            </h2>
           </div>
-          <div className="p-4 sm:p-6 sm:pt-4">
-            <div className="mt-4 flex flex-col gap-4">
-              <div className="flex items-center justify-center space-x-4">
-                <Search className="h-6 w-6 text-text-tertiary" />
-                <input
-                  type="text"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  placeholder={localize('com_ui_search_skills')}
-                  className="w-64 rounded border border-border-medium bg-transparent px-2 py-1 text-text-primary focus:outline-none"
-                />
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-tertiary"
+              aria-hidden="true"
+            />
+            <input
+              type="text"
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                if (e.target.value) {
+                  setActiveFolder(null);
+                }
+              }}
+              placeholder={localize('com_ui_search_skills')}
+              aria-label={localize('com_ui_search_skills')}
+              className="h-10 w-full rounded-xl border border-border-light bg-transparent pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-medium focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="mt-4 flex min-h-[300px] overflow-hidden border-t border-border-light">
+          {/* Sidebar */}
+          <nav className="flex w-[170px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border-light p-2">
+            <button
+              type="button"
+              onClick={() => setActiveFolder(null)}
+              aria-pressed={activeFolder === null && !searchValue}
+              className={cn(
+                'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors',
+                activeFolder === null && !searchValue
+                  ? 'bg-surface-tertiary font-medium text-text-primary'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
+              )}
+            >
+              <ListFilter className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+              <span className="truncate">{localize('com_ui_all_proper')}</span>
+              <span className="ml-auto text-[11px] text-text-tertiary">{allSkills.length}</span>
+            </button>
+            {folders.map((folder) => (
+              <button
+                key={folder._id}
+                type="button"
+                onClick={() => setActiveFolder(folder._id)}
+                aria-pressed={activeFolder === folder._id}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors',
+                  activeFolder === folder._id
+                    ? 'bg-surface-tertiary font-medium text-text-primary'
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
+                )}
+              >
+                <FolderOpen className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+                <span className="truncate">{folder.name}</span>
+                <span className="ml-auto text-[11px] text-text-tertiary">
+                  {folderCounts.get(folder._id) ?? 0}
+                </span>
+              </button>
+            ))}
+            {(folderCounts.get(null) ?? 0) > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveFolder('__uncategorized__')}
+                aria-pressed={activeFolder === '__uncategorized__'}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors',
+                  activeFolder === '__uncategorized__'
+                    ? 'bg-surface-tertiary font-medium text-text-primary'
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
+                )}
+              >
+                <ListFilter className="size-3.5 shrink-0 opacity-60" aria-hidden="true" />
+                <span className="truncate">{localize('com_ui_uncategorized')}</span>
+                <span className="ml-auto text-[11px] text-text-tertiary">
+                  {folderCounts.get(null) ?? 0}
+                </span>
+              </button>
+            )}
+          </nav>
+
+          {/* Skill grid */}
+          <div
+            className="flex-1 overflow-y-auto p-4"
+            role="listbox"
+            aria-label={localize('com_ui_add_skills')}
+          >
+            {visibleSkills.flat != null && visibleSkills.flat.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {visibleSkills.flat.map(renderSkillCard)}
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredSkills.map((skill) => {
-                  const attached = isAttached(skill._id);
+            )}
+            {visibleSkills.flat != null && visibleSkills.flat.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Search className="size-8 text-text-tertiary opacity-40" aria-hidden="true" />
+                <p className="mt-3 text-sm text-text-secondary">
+                  {localize('com_ui_no_skills_found')}
+                </p>
+              </div>
+            )}
+            {visibleSkills.flat == null && visibleSkills.grouped != null && (
+              <div className="flex flex-col gap-3">
+                {folders.map((folder) => {
+                  const folderSkills = visibleSkills.grouped!.get(folder._id);
+                  if (!folderSkills || folderSkills.length === 0) {
+                    return null;
+                  }
                   return (
-                    <div
-                      key={skill._id}
-                      className="flex items-start justify-between rounded-lg border border-border-medium p-3 transition-colors hover:bg-surface-tertiary"
-                    >
-                      <div className="mr-2 min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-text-primary">
-                          {skill.name}
-                        </p>
-                        {skill.description && (
-                          <p className="mt-1 line-clamp-2 text-xs text-text-secondary">
-                            {skill.description}
-                          </p>
-                        )}
+                    <div key={folder._id}>
+                      <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+                        {folder.name}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {folderSkills.map(renderSkillCard)}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSkill(skill._id)}
-                        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                          attached
-                            ? 'bg-green-600 text-white hover:bg-green-700'
-                            : 'bg-surface-tertiary text-text-secondary hover:bg-surface-hover'
-                        }`}
-                        aria-label={
-                          attached
-                            ? localize('com_ui_remove')
-                            : localize('com_ui_add')
-                        }
-                      >
-                        {attached ? (
-                          <Check className="h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <Plus className="h-4 w-4" aria-hidden="true" />
-                        )}
-                      </button>
                     </div>
                   );
                 })}
-                {filteredSkills.length === 0 && (
-                  <div className="col-span-full py-8 text-center text-sm text-text-secondary">
-                    {localize('com_ui_no_skills_found')}
-                  </div>
-                )}
+                {(() => {
+                  const uncategorized = visibleSkills.grouped!.get(null);
+                  if (!uncategorized || uncategorized.length === 0) {
+                    return null;
+                  }
+                  return (
+                    <div>
+                      <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+                        {localize('com_ui_uncategorized')}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {uncategorized.map(renderSkillCard)}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
-            </div>
+            )}
           </div>
-        </DialogPanel>
-      </div>
-    </Dialog>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-border-light px-6 py-4">
+          <p className="text-[13px] text-text-secondary" aria-live="polite">
+            {localize('com_ui_skills_selected_count', { count: selectedSkills.length })}
+          </p>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="h-9 rounded-xl bg-green-600 px-5 text-sm font-medium text-white transition-colors hover:bg-green-700"
+            aria-label={localize('com_ui_done')}
+          >
+            {localize('com_ui_done')}
+          </button>
+        </div>
+      </OGDialogContent>
+    </OGDialog>
   );
 }
 
