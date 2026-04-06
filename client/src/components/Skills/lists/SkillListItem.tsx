@@ -118,14 +118,11 @@ function SkillListItem({ skill }: { skill: TSkill }) {
     input.click();
   }, [skill._id, createNode]);
 
-  const nodeCount = treeData?.nodes.length ?? 0;
-  const treeHeight = Math.min(nodeCount * 32 + 32, 320);
-
   return (
     <div
       className={cn(
         'group/skill mb-1 rounded-xl border',
-        'ease-[cubic-bezier(0.25,0.1,0.25,1)] transition-[border-color,box-shadow] duration-300',
+        'duration-[350ms] ease-[cubic-bezier(0.32,0.72,0,1)] transition-[border-color,box-shadow]',
         expanded
           ? 'border-border-medium shadow-sm'
           : 'border-border-light hover:border-border-medium',
@@ -141,7 +138,7 @@ function SkillListItem({ skill }: { skill: TSkill }) {
         <ChevronRight
           className={cn(
             'size-3.5 shrink-0 text-text-secondary',
-            'ease-[cubic-bezier(0.25,0.1,0.25,1)] transition-transform duration-300',
+            'duration-[350ms] ease-[cubic-bezier(0.32,0.72,0,1)] transition-transform',
             expanded && 'rotate-90',
           )}
           aria-hidden="true"
@@ -199,7 +196,7 @@ function SkillListItem({ skill }: { skill: TSkill }) {
           <div
             className={cn(
               'flex items-center gap-0.5 overflow-hidden',
-              'ease-[cubic-bezier(0.25,0.1,0.25,1)] transition-[max-width,opacity] duration-300',
+              'duration-[350ms] ease-[cubic-bezier(0.32,0.72,0,1)] transition-[max-width,opacity]',
               expanded ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0',
             )}
           >
@@ -281,7 +278,7 @@ function SkillListItem({ skill }: { skill: TSkill }) {
       </button>
       <div
         className={cn(
-          'ease-[cubic-bezier(0.25,0.1,0.25,1)] grid transition-[grid-template-rows] duration-300',
+          'duration-[350ms] ease-[cubic-bezier(0.32,0.72,0,1)] grid transition-[grid-template-rows]',
           expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
         )}
       >
@@ -299,7 +296,6 @@ function SkillListItem({ skill }: { skill: TSkill }) {
                 onRenameNode={handleRenameNode}
                 onMoveNode={handleMoveNode}
                 onDeleteNode={handleDeleteNode}
-                height={treeHeight}
               />
             )}
           </div>

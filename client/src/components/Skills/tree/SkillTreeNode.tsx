@@ -122,7 +122,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
         <ChevronRight
           className={cn(
             'size-3 shrink-0 text-text-secondary',
-            'ease-[cubic-bezier(0.25,0.1,0.25,1)] transition-transform duration-300',
+            'ease-[cubic-bezier(0.32,0.72,0,1)] transition-transform duration-200',
             isOpen && 'rotate-90',
           )}
           aria-hidden="true"

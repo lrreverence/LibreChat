@@ -12,7 +12,7 @@ interface SkillFileTreeProps {
   onRenameNode: (nodeId: string, newName: string) => void;
   onMoveNode: (nodeId: string, newParentId: string | null, index: number) => void;
   onDeleteNode: (nodeId: string) => void;
-  height: number;
+  height?: number;
 }
 
 function buildTreeData(nodes: TSkillNode[]): SkillTreeData[] {
@@ -98,6 +98,10 @@ export default function SkillFileTree({
     [onMoveNode],
   );
 
+  const rowHeight = 28;
+  const autoHeight = treeData.length * rowHeight + 8;
+  const resolvedHeight = height ?? Math.min(autoHeight, 400);
+
   return (
     <TreeActionsContext.Provider value={treeActions}>
       <Tree<SkillTreeData>
@@ -106,9 +110,9 @@ export default function SkillFileTree({
         onSelect={handleSelect}
         onRename={handleRename}
         onMove={handleMove}
-        rowHeight={32}
+        rowHeight={rowHeight}
         indent={16}
-        height={height}
+        height={resolvedHeight}
         openByDefault={false}
       >
         {SkillTreeNode}
