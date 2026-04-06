@@ -125,6 +125,7 @@ const Dropdown: React.FC<DropdownProps> = ({
               value={String(option.value)}
               className="select-item"
               data-theme={option.value}
+              disabled={option.disabled === true}
             >
               <div className="flex w-full items-center gap-2">
                 {option.icon != null && <span>{option.icon as React.ReactNode}</span>}

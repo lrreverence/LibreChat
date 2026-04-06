@@ -1,32 +1,21 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { Plus, PenLine, Upload, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Button,
-  TooltipAnchor,
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  useToastContext,
-} from '@librechat/client';
+import { Dropdown, useToastContext } from '@librechat/client';
+import type { Option } from '~/common';
 import type { ParsedSkillMd } from '../utils/parseSkillMd';
 import { parseSkillMd } from '../utils/parseSkillMd';
 import { useLocalize } from '~/hooks';
+
+const CREATE_AI = 'ai';
+const CREATE_MANUAL = 'manual';
+const CREATE_UPLOAD = 'upload';
 
 export default function CreateSkillMenu() {
   const localize = useLocalize();
   const navigate = useNavigate();
   const { showToast } = useToastContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleManual = useCallback(() => {
-    navigate('/skills/new');
-  }, [navigate]);
-
-  const handleUploadClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
 
   const handleFileChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,40 +46,50 @@ export default function CreateSkillMenu() {
     [navigate, showToast, localize],
   );
 
+  const options = useMemo<Option[]>(
+    () => [
+      {
+        value: CREATE_AI,
+        label: localize('com_ui_create_skill_ai'),
+        icon: <Sparkles className="size-4 text-text-primary" />,
+        disabled: true,
+      },
+      {
+        value: CREATE_MANUAL,
+        label: localize('com_ui_create_skill_manual'),
+        icon: <PenLine className="size-4 text-text-primary" />,
+      },
+      {
+        value: CREATE_UPLOAD,
+        label: localize('com_ui_create_skill_upload'),
+        icon: <Upload className="size-4 text-text-primary" />,
+      },
+    ],
+    [localize],
+  );
+
+  const handleSelect = useCallback(
+    (value: string) => {
+      if (value === CREATE_MANUAL) {
+        navigate('/skills/new');
+      } else if (value === CREATE_UPLOAD) {
+        setTimeout(() => fileInputRef.current?.click(), 0);
+      }
+    },
+    [navigate],
+  );
+
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-9 shrink-0 bg-transparent"
-            aria-label={localize('com_ui_create_skill')}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[180px]">
-          <TooltipAnchor
-            description={localize('com_ui_create_skill_ai_coming_soon')}
-            side="left"
-            render={
-              <DropdownMenuItem disabled onSelect={(e) => e.preventDefault()}>
-                <Sparkles className="size-4" aria-hidden="true" />
-                {localize('com_ui_create_skill_ai')}
-              </DropdownMenuItem>
-            }
-          />
-          <DropdownMenuItem onSelect={handleManual}>
-            <PenLine className="size-4" aria-hidden="true" />
-            {localize('com_ui_create_skill_manual')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={handleUploadClick}>
-            <Upload className="size-4" aria-hidden="true" />
-            {localize('com_ui_create_skill_upload')}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Dropdown
+        value=""
+        onChange={handleSelect}
+        options={options}
+        className="shrink-0 rounded-lg bg-transparent [&>button]:size-9"
+        icon={<Plus className="size-4" />}
+        ariaLabel={localize('com_ui_create_skill')}
+        iconOnly
+      />
       <input
         ref={fileInputRef}
         type="file"
