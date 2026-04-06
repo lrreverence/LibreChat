@@ -99,7 +99,15 @@ function FilePanel({ skillId, nodeId }: { skillId: string; nodeId: string }) {
   return <SkillFilePreview skillId={skillId} nodeId={nodeId} fileName={fileName} />;
 }
 
-function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
+function TreeView({
+  skillId,
+  nodeId,
+  isEdit,
+}: {
+  skillId: string;
+  nodeId?: string;
+  isEdit?: boolean;
+}) {
   const localize = useLocalize();
   const navigate = useNavigate();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(nodeId ?? null);
@@ -231,22 +239,20 @@ function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
             <Pencil className="size-4" />
           </ToolbarButton>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1">
           {treeLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex h-full items-center justify-center">
               <Spinner className="size-4 text-text-tertiary" />
             </div>
           ) : (
-            <div className="py-1">
-              <SkillFileTree
-                nodes={treeData?.nodes ?? []}
-                selectedNodeId={selectedNodeId}
-                onSelectNode={handleSelectNode}
-                onRenameNode={handleRenameNode}
-                onMoveNode={handleMoveNode}
-                onDeleteNode={handleDeleteNode}
-              />
-            </div>
+            <SkillFileTree
+              nodes={treeData?.nodes ?? []}
+              selectedNodeId={selectedNodeId}
+              onSelectNode={handleSelectNode}
+              onRenameNode={handleRenameNode}
+              onMoveNode={handleMoveNode}
+              onDeleteNode={handleDeleteNode}
+            />
           )}
         </div>
       </div>
@@ -260,8 +266,10 @@ function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
       >
         <div className="h-8 w-0.5 rounded-full bg-border-light transition-colors group-hover/resize:bg-border-medium group-active/resize:bg-border-heavy" />
       </div>
-      <div className="flex-1 overflow-hidden">
-        {nodeId ? (
+      <div className="flex-1 overflow-y-auto">
+        {isEdit ? (
+          <SkillForm skillId={skillId} />
+        ) : nodeId ? (
           <FilePanel skillId={skillId} nodeId={nodeId} />
         ) : (
           <SkillState
@@ -324,16 +332,8 @@ export default function SkillsView() {
     );
   }
 
-  if (isEdit) {
-    return (
-      <div className="flex h-full w-full flex-col overflow-y-auto bg-presentation">
-        <SkillForm skillId={skillId} />
-      </div>
-    );
-  }
-
   if (skillId) {
-    return <TreeView skillId={skillId} nodeId={nodeId} />;
+    return <TreeView skillId={skillId} nodeId={nodeId} isEdit={isEdit} />;
   }
 
   return null;
