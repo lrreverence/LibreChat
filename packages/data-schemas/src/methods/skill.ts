@@ -105,9 +105,7 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
           typeof _id !== 'string' ||
           !isValidObjectIdString(_id)
         ) {
-          logger.warn(
-            '[getListSkillsByAccess] Invalid cursor fields, skipping cursor condition',
-          );
+          logger.warn('[getListSkillsByAccess] Invalid cursor fields, skipping cursor condition');
         } else {
           const cursorCondition = {
             $or: [
@@ -243,29 +241,38 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
   }
 
   /**
-   * Update a skill folder by its ID.
+   * Update a skill folder by its ID. Scoped by author for ownership enforcement.
    */
   async function updateSkillFolder({
     _id,
+    author,
     data,
   }: {
     _id: string;
+    author: string;
     data: Partial<ISkillFolderDocument>;
   }) {
     const SkillFolder = mongoose.models.SkillFolder as Model<ISkillFolderDocument>;
-    return SkillFolder.findByIdAndUpdate(_id, data, { new: true }).lean();
+    return SkillFolder.findOneAndUpdate({ _id, author: new ObjectId(author) }, data, {
+      new: true,
+    }).lean();
   }
 
   /**
    * Delete a skill folder and unset folderId on any skills referencing it.
+   * Scoped by author for ownership enforcement. Returns null if the folder
+   * does not exist or is not owned by the given author.
    */
-  async function deleteSkillFolder({ _id }: { _id: string }) {
+  async function deleteSkillFolder({ _id, author }: { _id: string; author: string }) {
     const Skill = mongoose.models.Skill as Model<ISkillDocument>;
     const SkillFolder = mongoose.models.SkillFolder as Model<ISkillFolderDocument>;
 
-    await SkillFolder.deleteOne({ _id });
-    await Skill.updateMany({ folderId: _id }, { $unset: { folderId: '' } });
+    const result = await SkillFolder.findOneAndDelete({ _id, author: new ObjectId(author) }).lean();
+    if (!result) {
+      return null;
+    }
 
+    await Skill.updateMany({ folderId: _id }, { $unset: { folderId: '' } });
     return { message: 'Skill folder deleted successfully' };
   }
 

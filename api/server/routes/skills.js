@@ -43,24 +43,49 @@ const checkSkillCreate = generateCheckAccess({
   getRoleByName,
 });
 
+/** Allowed fields for skill create/update — prevents mass assignment of author, tenantId, etc. */
+const ALLOWED_SKILL_FIELDS = ['name', 'description', 'content', 'folderId', 'invocationMode'];
+
+function pickAllowed(body, fields) {
+  const result = {};
+  for (const key of fields) {
+    if (body[key] !== undefined) {
+      result[key] = body[key];
+    }
+  }
+  return result;
+}
+
+function isValidObjectId(id) {
+  return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+}
+
 router.use(requireJwtAuth);
 router.use(checkSkillAccess);
 
 /**
  * Creates a new skill.
  * @route POST /api/skills
- * @param {object} req.body - Skill creation payload (must include name).
+ * @param {object} req.body - Skill creation payload (must include name and content).
  * @returns {ISkillDocument} 201 - Created skill document
  */
 router.post('/', checkSkillCreate, async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, content } = req.body;
     if (!name || typeof name !== 'string' || !name.trim()) {
-      return res.status(400).json({ error: 'Skill name is required and must be a non-empty string' });
+      return res
+        .status(400)
+        .json({ error: 'Skill name is required and must be a non-empty string' });
+    }
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res
+        .status(400)
+        .json({ error: 'Skill content is required and must be a non-empty string' });
     }
 
+    const allowed = pickAllowed(req.body, ALLOWED_SKILL_FIELDS);
     const result = await createSkill({
-      ...req.body,
+      ...allowed,
       author: req.user.id,
       authorName: req.user.name,
     });
@@ -202,7 +227,9 @@ router.post('/folders', async (req, res) => {
   try {
     const { name } = req.body;
     if (!name || typeof name !== 'string' || !name.trim()) {
-      return res.status(400).json({ error: 'Folder name is required and must be a non-empty string' });
+      return res
+        .status(400)
+        .json({ error: 'Folder name is required and must be a non-empty string' });
     }
 
     const folder = await createSkillFolder({ name: name.trim(), author: req.user.id });
@@ -214,7 +241,7 @@ router.post('/folders', async (req, res) => {
 });
 
 /**
- * Updates a skill folder by ID.
+ * Updates a skill folder by ID. Only the folder author can update it.
  * @route PATCH /api/skills/folders/:folderId
  * @param {string} req.params.folderId - Folder ObjectId.
  * @param {object} req.body - Must include `name`.
@@ -222,12 +249,23 @@ router.post('/folders', async (req, res) => {
  */
 router.patch('/folders/:folderId', async (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return res.status(400).json({ error: 'Folder name is required and must be a non-empty string' });
+    const { folderId } = req.params;
+    if (!isValidObjectId(folderId)) {
+      return res.status(404).json({ error: 'Folder not found' });
     }
 
-    const folder = await updateSkillFolder({ _id: req.params.folderId, name: name.trim() });
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res
+        .status(400)
+        .json({ error: 'Folder name is required and must be a non-empty string' });
+    }
+
+    const folder = await updateSkillFolder({
+      _id: folderId,
+      author: req.user.id,
+      data: { name: name.trim() },
+    });
     if (!folder) {
       return res.status(404).json({ error: 'Folder not found' });
     }
@@ -239,14 +277,22 @@ router.patch('/folders/:folderId', async (req, res) => {
 });
 
 /**
- * Deletes a skill folder by ID.
+ * Deletes a skill folder by ID. Only the folder author can delete it.
  * @route DELETE /api/skills/folders/:folderId
  * @param {string} req.params.folderId - Folder ObjectId.
  * @returns {object} 200 - Deletion confirmation
  */
 router.delete('/folders/:folderId', async (req, res) => {
   try {
-    await deleteSkillFolder({ _id: req.params.folderId });
+    const { folderId } = req.params;
+    if (!isValidObjectId(folderId)) {
+      return res.status(404).json({ error: 'Folder not found' });
+    }
+
+    const result = await deleteSkillFolder({ _id: folderId, author: req.user.id });
+    if (!result) {
+      return res.status(404).json({ error: 'Folder not found' });
+    }
     res.status(200).json({ message: 'Folder deleted' });
   } catch (error) {
     logger.error('[deleteSkillFolder]', error);
@@ -281,7 +327,7 @@ router.get(
  * Updates a skill by ID.
  * @route PATCH /api/skills/:skillId
  * @param {string} req.params.skillId - Skill ObjectId.
- * @param {object} req.body - Fields to update.
+ * @param {object} req.body - Fields to update (name, description, content, folderId, invocationMode).
  * @returns {ISkillDocument} 200 - Updated skill document
  */
 router.patch(
@@ -290,7 +336,8 @@ router.patch(
   canAccessSkillResource({ requiredPermission: PermissionBits.EDIT }),
   async (req, res) => {
     try {
-      const result = await updateSkill({ _id: req.params.skillId, data: req.body });
+      const allowed = pickAllowed(req.body, ALLOWED_SKILL_FIELDS);
+      const result = await updateSkill({ _id: req.params.skillId, data: allowed });
       if (!result) {
         return res.status(404).json({ error: 'Skill not found' });
       }
