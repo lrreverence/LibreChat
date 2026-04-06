@@ -152,7 +152,6 @@ async function createSkillAsOwner(overrides = {}) {
     .send({
       name: 'Test Skill',
       description: 'A test skill',
-      content: '# Test\nContent here.',
       invocationMode: 'auto',
       ...overrides,
     });
@@ -164,24 +163,17 @@ describe('POST /api/skills', () => {
     const res = await createSkillAsOwner();
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('Test Skill');
-    expect(res.body.content).toBe('# Test\nContent here.');
     expect(res.body.author).toBe(testUsers.owner._id.toString());
   });
 
   it('should reject missing name with 400', async () => {
-    const res = await request(app).post('/api/skills').send({ content: 'body', description: 'x' });
+    const res = await request(app).post('/api/skills').send({ description: 'x' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/name/i);
   });
 
-  it('should reject missing content with 400', async () => {
-    const res = await request(app).post('/api/skills').send({ name: 'Skill', description: 'x' });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/content/i);
-  });
-
   it('should reject empty name string with 400', async () => {
-    const res = await request(app).post('/api/skills').send({ name: '   ', content: 'body' });
+    const res = await request(app).post('/api/skills').send({ name: '   ' });
     expect(res.status).toBe(400);
   });
 
@@ -248,7 +240,7 @@ describe('GET /api/skills', () => {
 
   it('should support limit parameter for pagination', async () => {
     for (let i = 0; i < 5; i++) {
-      await createSkillAsOwner({ name: `Paged ${i}`, content: `content ${i}` });
+      await createSkillAsOwner({ name: `Paged ${i}` });
     }
     const res = await request(app).get('/api/skills?limit=3');
     expect(res.status).toBe(200);
