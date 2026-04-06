@@ -1,5 +1,15 @@
 import { memo, useCallback, useContext, createContext } from 'react';
-import { File, Folder, FolderOpen, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import {
+  FileText,
+  FileCode,
+  FileJson,
+  FileImage,
+  Folder,
+  FolderOpen,
+  ChevronRight,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { cn } from '~/utils';
 import type { NodeRendererProps } from 'react-arborist';
 
@@ -16,6 +26,38 @@ interface TreeActions {
 }
 
 export const TreeActionsContext = createContext<TreeActions>({ onDeleteNode: () => {} });
+
+const CODE_EXTENSIONS = new Set([
+  '.js',
+  '.ts',
+  '.jsx',
+  '.tsx',
+  '.py',
+  '.sh',
+  '.css',
+  '.html',
+  '.xml',
+  '.yaml',
+  '.yml',
+  '.toml',
+]);
+const JSON_EXTENSIONS = new Set(['.json', '.jsonl']);
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico']);
+
+function getFileIcon(name: string) {
+  const lower = name.toLowerCase();
+  const ext = lower.slice(lower.lastIndexOf('.'));
+  if (CODE_EXTENSIONS.has(ext)) {
+    return { Icon: FileCode, className: 'text-text-secondary' };
+  }
+  if (JSON_EXTENSIONS.has(ext)) {
+    return { Icon: FileJson, className: 'text-text-secondary' };
+  }
+  if (IMAGE_EXTENSIONS.has(ext)) {
+    return { Icon: FileImage, className: 'text-text-secondary' };
+  }
+  return { Icon: FileText, className: 'text-text-secondary' };
+}
 
 function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeData>) {
   const isFolder = node.data.nodeType === 'folder';
@@ -47,6 +89,8 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
     [node.id, onDeleteNode],
   );
 
+  const fileIcon = !isFolder ? getFileIcon(node.data.name) : null;
+
   return (
     <div
       ref={dragHandle}
@@ -55,11 +99,11 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       aria-selected={isSelected}
       aria-expanded={isFolder ? isOpen : undefined}
       className={cn(
-        'group flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-sm',
+        'group flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-[3px] text-[13px]',
         'transition-colors duration-100',
-        'hover:bg-surface-hover',
-        isSelected && 'bg-surface-active text-text-primary',
-        !isSelected && 'text-text-secondary',
+        isSelected
+          ? 'bg-surface-active text-text-primary'
+          : 'text-text-secondary hover:bg-surface-hover',
       )}
       onClick={handleClick}
       onKeyDown={(e) => {
@@ -77,29 +121,23 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       {isFolder ? (
         <ChevronRight
           className={cn(
-            'size-3.5 shrink-0 transition-transform duration-200 ease-out',
+            'size-3 shrink-0 text-text-secondary transition-transform duration-200 ease-out',
             isOpen && 'rotate-90',
           )}
           aria-hidden="true"
         />
       ) : (
-        <span className="w-3.5" />
-      )}
-      {!isFolder && (
-        <File
-          className="size-4 shrink-0 text-text-tertiary transition-colors duration-100"
-          aria-hidden="true"
-        />
+        <span className="w-3" />
       )}
       {isFolder && isOpen && (
-        <FolderOpen
-          className="size-4 shrink-0 text-text-tertiary transition-colors duration-100"
-          aria-hidden="true"
-        />
+        <FolderOpen className="size-[15px] shrink-0 text-text-secondary" aria-hidden="true" />
       )}
       {isFolder && !isOpen && (
-        <Folder
-          className="size-4 shrink-0 text-text-tertiary transition-colors duration-100"
+        <Folder className="size-[15px] shrink-0 text-text-secondary" aria-hidden="true" />
+      )}
+      {fileIcon && (
+        <fileIcon.Icon
+          className={cn('size-[15px] shrink-0', fileIcon.className)}
           aria-hidden="true"
         />
       )}
@@ -110,7 +148,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           ref={(el) => el?.focus()}
           className={cn(
             'min-w-0 flex-1 rounded border border-border-medium bg-surface-primary',
-            'px-1.5 py-0.5 text-sm text-text-primary outline-none',
+            'px-1.5 py-0.5 text-[13px] text-text-primary outline-none',
             'transition-shadow duration-150 focus:ring-1 focus:ring-ring-primary',
           )}
           onBlur={() => node.reset()}
@@ -125,17 +163,19 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
         />
       ) : (
         <>
-          <span className="min-w-0 flex-1 truncate">{node.data.name}</span>
+          <span className={cn('min-w-0 flex-1 truncate', isSelected && 'font-medium')}>
+            {node.data.name}
+          </span>
           <div
             className={cn(
-              'ml-auto flex shrink-0 items-center gap-0.5',
+              'ml-auto flex shrink-0 items-center gap-px',
               'translate-x-1 opacity-0 transition-[opacity,transform] duration-150 ease-out',
               'group-hover:translate-x-0 group-hover:opacity-100',
             )}
           >
             <button
               type="button"
-              className="rounded p-0.5 text-text-tertiary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
+              className="rounded p-0.5 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
               onClick={handleRename}
               aria-label={`Rename ${node.data.name}`}
               tabIndex={-1}
@@ -144,7 +184,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
             </button>
             <button
               type="button"
-              className="rounded p-0.5 text-text-tertiary transition-colors duration-100 hover:bg-red-500/10 hover:text-red-500"
+              className="rounded p-0.5 text-text-secondary transition-colors duration-100 hover:bg-red-500/10 hover:text-red-500"
               onClick={handleDelete}
               aria-label={`Delete ${node.data.name}`}
               tabIndex={-1}

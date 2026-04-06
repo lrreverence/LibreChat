@@ -1,7 +1,7 @@
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
-import { ChevronRight, EarthIcon, Pencil, User } from 'lucide-react';
+import { ChevronRight, EarthIcon, FilePlus, FolderPlus, Pencil, Upload, User } from 'lucide-react';
 import { Spinner, TooltipAnchor } from '@librechat/client';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import type { TSkillNode } from 'librechat-data-provider';
 import type { TSkill } from 'librechat-data-provider';
 import {
@@ -10,14 +10,13 @@ import {
   useUpdateSkillNodeMutation,
   useDeleteSkillNodeMutation,
 } from '~/data-provider';
-import { SkillFileTree, TreeToolbar } from '~/components/Skills/tree';
+import { SkillFileTree } from '~/components/Skills/tree';
 import { useLocalize, useAuthContext } from '~/hooks';
 import { cn } from '~/utils';
 
 function SkillListItem({ skill }: { skill: TSkill }) {
   const localize = useLocalize();
   const navigate = useNavigate();
-  const params = useParams();
   const { user } = useAuthContext();
   const [expanded, setExpanded] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -27,8 +26,6 @@ function SkillListItem({ skill }: { skill: TSkill }) {
 
   const isShared = skill.author !== user?.id && Boolean(skill.authorName);
   const isPublic = skill.isPublic === true;
-  const isActive = params.skillId === skill._id;
-
   const { data: treeData, isLoading: treeLoading } = useGetSkillTreeQuery(
     expanded ? skill._id : null,
   );
@@ -147,9 +144,8 @@ function SkillListItem({ skill }: { skill: TSkill }) {
       className={cn(
         'group/skill duration-250 mb-1 overflow-hidden rounded-xl border transition-all ease-out',
         expanded
-          ? 'border-border-medium bg-surface-primary shadow-sm'
-          : 'border-border-light bg-transparent hover:border-border-medium',
-        isActive && !expanded && 'border-border-medium bg-surface-hover',
+          ? 'border-border-medium shadow-sm'
+          : 'border-border-light hover:border-border-medium',
       )}
     >
       <button
@@ -157,7 +153,6 @@ function SkillListItem({ skill }: { skill: TSkill }) {
         className={cn(
           'flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors duration-150',
           'hover:bg-surface-secondary/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary',
-          expanded && 'bg-surface-secondary/30',
         )}
         onClick={handleToggle}
         aria-expanded={expanded}
@@ -218,15 +213,77 @@ function SkillListItem({ skill }: { skill: TSkill }) {
         </div>
         <div
           className={cn(
-            'flex shrink-0 items-center transition-opacity duration-150',
+            'flex shrink-0 items-center gap-0.5 transition-opacity duration-150',
             'opacity-0 group-hover/skill:opacity-100',
             expanded && 'opacity-100',
           )}
         >
+          {expanded && (
+            <>
+              <span
+                role="button"
+                tabIndex={0}
+                className="rounded bg-transparent p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNewFile();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    handleNewFile();
+                  }
+                }}
+                aria-label={localize('com_ui_skill_new_file')}
+                title={localize('com_ui_skill_new_file')}
+              >
+                <FilePlus className="size-3.5" />
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                className="rounded bg-transparent p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNewFolder();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    handleNewFolder();
+                  }
+                }}
+                aria-label={localize('com_ui_skill_new_folder')}
+                title={localize('com_ui_skill_new_folder')}
+              >
+                <FolderPlus className="size-3.5" />
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                className="rounded bg-transparent p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUpload();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    handleUpload();
+                  }
+                }}
+                aria-label={localize('com_ui_skill_upload_file')}
+                title={localize('com_ui_skill_upload_file')}
+              >
+                <Upload className="size-3.5" />
+              </span>
+              <div className="mx-0.5 h-3.5 w-px bg-border-light" />
+            </>
+          )}
           <span
             role="button"
             tabIndex={0}
-            className="rounded p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
+            className="rounded bg-transparent p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
             onClick={handleEditMetadata}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -249,28 +306,21 @@ function SkillListItem({ skill }: { skill: TSkill }) {
         }}
       >
         <div ref={contentRef}>
-          <div className="border-border-light/60 border-t">
-            <TreeToolbar
-              onNewFile={handleNewFile}
-              onNewFolder={handleNewFolder}
-              onUpload={handleUpload}
-            />
+          <div className="px-2 pb-2 pt-1">
             {treeLoading ? (
               <div className="flex items-center justify-center py-6">
                 <Spinner className="size-4 text-text-tertiary" />
               </div>
             ) : (
-              <div className="pb-1">
-                <SkillFileTree
-                  nodes={treeData?.nodes ?? []}
-                  selectedNodeId={selectedNodeId}
-                  onSelectNode={handleSelectNode}
-                  onRenameNode={handleRenameNode}
-                  onMoveNode={handleMoveNode}
-                  onDeleteNode={handleDeleteNode}
-                  height={treeHeight}
-                />
-              </div>
+              <SkillFileTree
+                nodes={treeData?.nodes ?? []}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={handleSelectNode}
+                onRenameNode={handleRenameNode}
+                onMoveNode={handleMoveNode}
+                onDeleteNode={handleDeleteNode}
+                height={treeHeight}
+              />
             )}
           </div>
         </div>
