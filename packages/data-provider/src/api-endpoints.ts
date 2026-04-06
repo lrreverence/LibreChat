@@ -303,6 +303,14 @@ export const skillFolders = ({ path = '', options }: { path?: string; options?: 
   return url;
 };
 
+export const skillTree = ({ skillId, path = '' }: { skillId: string; path?: string }) => {
+  let url = `${BASE_URL}/api/skills/${encodeURIComponent(skillId)}/tree`;
+  if (path) {
+    url += `/${path}`;
+  }
+  return url;
+};
+
 export const activeJobs = () => `${BASE_URL}/api/agents/chat/active`;
 
 export const mcp = {

@@ -981,6 +981,78 @@ export const deleteSkillFolder = ({ _id }: t.TDeleteSkillFolderRequest): Promise
   return request.delete(endpoints.skillFolders({ path: _id }));
 };
 
+/**
+ * Skill Tree (nodes)
+ */
+
+export const getSkillTree = (skillId: string): Promise<t.TSkillTreeResponse> => {
+  return request.get(endpoints.skillTree({ skillId }));
+};
+
+export const createSkillNode = (
+  skillId: string,
+  data: FormData | t.TCreateSkillNodeRequest,
+): Promise<t.TSkillNode> => {
+  if (data instanceof FormData) {
+    return request.postMultiPart(endpoints.skillTree({ skillId, path: 'node' }), data);
+  }
+  return request.post(endpoints.skillTree({ skillId, path: 'node' }), data);
+};
+
+export const updateSkillNode = ({
+  skillId,
+  nodeId,
+  data,
+}: {
+  skillId: string;
+  nodeId: string;
+  data: t.TUpdateSkillNodeRequest;
+}): Promise<t.TSkillNode> => {
+  return request.patch(
+    endpoints.skillTree({ skillId, path: `node/${encodeURIComponent(nodeId)}` }),
+    data,
+  );
+};
+
+export const deleteSkillNode = ({
+  skillId,
+  nodeId,
+}: {
+  skillId: string;
+  nodeId: string;
+}): Promise<void> => {
+  return request.delete(
+    endpoints.skillTree({ skillId, path: `node/${encodeURIComponent(nodeId)}` }),
+  );
+};
+
+export const getSkillNodeContent = ({
+  skillId,
+  nodeId,
+}: {
+  skillId: string;
+  nodeId: string;
+}): Promise<{ content: string; mimeType: string }> => {
+  return request.get(
+    endpoints.skillTree({ skillId, path: `node/${encodeURIComponent(nodeId)}/content` }),
+  );
+};
+
+export const updateSkillNodeContent = ({
+  skillId,
+  nodeId,
+  content,
+}: {
+  skillId: string;
+  nodeId: string;
+  content: string;
+}): Promise<t.TSkillNode> => {
+  return request.put(
+    endpoints.skillTree({ skillId, path: `node/${encodeURIComponent(nodeId)}/content` }),
+    { content },
+  );
+};
+
 /* Tags */
 export function getConversationTags(): Promise<t.TConversationTagsResponse> {
   return request.get(endpoints.conversationTags());
