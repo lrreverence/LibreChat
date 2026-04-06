@@ -47,6 +47,7 @@ import { createSpendTokensMethods, type SpendTokensMethods } from './spendTokens
 import { createPromptMethods, type PromptMethods, type PromptDeps } from './prompt';
 /* Skills */
 import { createSkillMethods, type SkillMethods, type SkillDeps } from './skill';
+import { createSkillNodeMethods, type SkillNodeMethods, type SkillNodeDeps } from './skillNode';
 /* Tier 5 — Agent */
 import { createAgentMethods, type AgentMethods, type AgentDeps } from './agent';
 /* Config */
@@ -85,6 +86,7 @@ export type AllMethods = UserMethods &
   SpendTokensMethods &
   PromptMethods &
   SkillMethods &
+  SkillNodeMethods &
   AgentMethods &
   ConfigMethods;
 
@@ -164,6 +166,13 @@ export function createMethods(
   };
   const skillMethods = createSkillMethods(mongoose, skillDeps);
 
+  const fileMethods = createFileMethods(mongoose);
+
+  const skillNodeDeps: SkillNodeDeps = {
+    deleteFile: fileMethods.deleteFile,
+  };
+  const skillNodeMethods = createSkillNodeMethods(mongoose, skillNodeDeps);
+
   // Role methods with optional cache injection
   const roleDeps: RoleDeps = { getCache: deps.getCache };
   const roleMethods = createRoleMethods(mongoose, roleDeps);
@@ -185,7 +194,7 @@ export function createMethods(
     ...createTokenMethods(mongoose),
     ...roleMethods,
     ...createKeyMethods(mongoose),
-    ...createFileMethods(mongoose),
+    ...fileMethods,
     ...createMemoryMethods(mongoose),
     ...createAgentCategoryMethods(mongoose),
     ...createAgentApiKeyMethods(mongoose),
@@ -213,6 +222,7 @@ export function createMethods(
     ...spendTokensMethods,
     ...promptMethods,
     ...skillMethods,
+    ...skillNodeMethods,
     /* Tier 5 */
     ...agentMethods,
     /* Config */
@@ -251,6 +261,7 @@ export type {
   SpendTokensMethods,
   PromptMethods,
   SkillMethods,
+  SkillNodeMethods,
   AgentMethods,
   ConfigMethods,
 };
