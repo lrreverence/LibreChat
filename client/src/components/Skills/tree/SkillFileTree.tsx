@@ -119,7 +119,7 @@ export default function SkillFileTree({
 
   return (
     <TreeActionsContext.Provider value={treeActions}>
-      <div ref={containerRef} className="size-full">
+      <div ref={containerRef} className="size-full px-2">
         <Tree<SkillTreeData>
           data={treeData}
           selection={selectedNodeId ?? undefined}

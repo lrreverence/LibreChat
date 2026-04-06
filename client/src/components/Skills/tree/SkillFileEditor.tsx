@@ -114,10 +114,10 @@ export default function SkillFileEditor({ skillId, nodeId, fileName }: SkillFile
         />
       </div>
       <div className="flex items-center justify-between border-t border-border-light px-4 py-1">
-        <span className="text-[11px] text-text-tertiary">
+        <span className="text-[11px] text-text-secondary">
           {lineCount} {lineCount === 1 ? 'line' : 'lines'}
         </span>
-        <span className="text-[11px] text-text-tertiary">{isDirty ? 'Modified' : 'Saved'}</span>
+        <span className="text-[11px] text-text-secondary">{isDirty ? 'Modified' : 'Saved'}</span>
       </div>
     </div>
   );

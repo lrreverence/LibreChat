@@ -8,7 +8,7 @@ import {
   FolderOpen,
   ChevronRight,
   Pencil,
-  Trash2,
+  Trash,
 } from 'lucide-react';
 import { cn } from '~/utils';
 import type { NodeRendererProps } from 'react-arborist';
@@ -113,16 +113,13 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
         if (e.key === 'F2') {
           node.edit();
         }
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-          onDeleteNode(node.id);
-        }
       }}
     >
       {isFolder ? (
         <ChevronRight
           className={cn(
             'size-3.5 shrink-0 text-text-secondary',
-            'ease-[cubic-bezier(0.32,0.72,0,1)] transition-transform duration-200',
+            'ease-[cubic-bezier(0.32,0.72,0,1)] transition-transform duration-300',
             isOpen && 'rotate-90',
           )}
           aria-hidden="true"
@@ -135,7 +132,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           <FolderOpen
             className={cn(
               'absolute inset-0 size-4 text-text-secondary',
-              'transition-opacity duration-200 ease-out',
+              'ease-[cubic-bezier(0.32,0.72,0,1)] transition-opacity duration-300',
               isOpen ? 'opacity-100' : 'opacity-0',
             )}
             aria-hidden="true"
@@ -143,7 +140,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           <Folder
             className={cn(
               'absolute inset-0 size-4 text-text-secondary',
-              'transition-opacity duration-200 ease-out',
+              'ease-[cubic-bezier(0.32,0.72,0,1)] transition-opacity duration-300',
               isOpen ? 'opacity-0' : 'opacity-100',
             )}
             aria-hidden="true"
@@ -181,7 +178,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           <div
             className={cn(
               'ml-auto flex shrink-0 items-center gap-px',
-              'opacity-0 transition-opacity duration-200 ease-out',
+              'ease-[cubic-bezier(0.32,0.72,0,1)] opacity-0 transition-opacity duration-300',
               'group-hover:opacity-100',
             )}
           >
@@ -196,12 +193,12 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
             </button>
             <button
               type="button"
-              className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-red-500/10 hover:text-red-500"
+              className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
               onClick={handleDelete}
               aria-label={`Delete ${node.data.name}`}
               tabIndex={-1}
             >
-              <Trash2 className="size-3.5" />
+              <Trash className="size-3.5" />
             </button>
           </div>
         </>
