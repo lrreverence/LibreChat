@@ -179,7 +179,7 @@ function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
 
   return (
     <div className="flex h-full w-full bg-presentation">
-      <div className="flex h-full w-60 shrink-0 flex-col border-r border-border-light">
+      <div className="flex h-full w-52 shrink-0 flex-col border-r border-border-light">
         <div className="flex items-center gap-0.5 border-b border-border-light px-2 py-1.5">
           <ToolbarButton onClick={handleNewFile} label={localize('com_ui_skill_new_file')}>
             <FilePlus className="size-3.5" />

@@ -99,7 +99,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       aria-selected={isSelected}
       aria-expanded={isFolder ? isOpen : undefined}
       className={cn(
-        'group flex cursor-pointer items-center gap-1 rounded-md py-[3px] pl-1.5 pr-1 text-[13px]',
+        'group flex cursor-pointer items-center gap-1.5 rounded-lg py-1 pl-2 pr-1 text-sm',
         'transition-colors duration-100',
         isSelected
           ? 'bg-surface-active text-text-primary'
@@ -121,7 +121,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       {isFolder ? (
         <ChevronRight
           className={cn(
-            'size-3 shrink-0 text-text-secondary',
+            'size-3.5 shrink-0 text-text-secondary',
             'ease-[cubic-bezier(0.32,0.72,0,1)] transition-transform duration-200',
             isOpen && 'rotate-90',
           )}
@@ -131,10 +131,10 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
         <span className="w-3" />
       )}
       {isFolder && (
-        <span className="relative size-[15px] shrink-0">
+        <span className="relative size-4 shrink-0">
           <FolderOpen
             className={cn(
-              'absolute inset-0 size-[15px] text-text-secondary',
+              'absolute inset-0 size-4 text-text-secondary',
               'transition-opacity duration-200 ease-out',
               isOpen ? 'opacity-100' : 'opacity-0',
             )}
@@ -142,7 +142,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           />
           <Folder
             className={cn(
-              'absolute inset-0 size-[15px] text-text-secondary',
+              'absolute inset-0 size-4 text-text-secondary',
               'transition-opacity duration-200 ease-out',
               isOpen ? 'opacity-0' : 'opacity-100',
             )}
@@ -151,10 +151,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
         </span>
       )}
       {fileIcon && (
-        <fileIcon.Icon
-          className={cn('size-[15px] shrink-0', fileIcon.className)}
-          aria-hidden="true"
-        />
+        <fileIcon.Icon className={cn('size-4 shrink-0', fileIcon.className)} aria-hidden="true" />
       )}
       {node.isEditing ? (
         <input
@@ -190,21 +187,21 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           >
             <button
               type="button"
-              className="rounded p-0.5 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
+              className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
               onClick={handleRename}
               aria-label={`Rename ${node.data.name}`}
               tabIndex={-1}
             >
-              <Pencil className="size-3" />
+              <Pencil className="size-3.5" />
             </button>
             <button
               type="button"
-              className="rounded p-0.5 text-text-secondary transition-colors duration-100 hover:bg-red-500/10 hover:text-red-500"
+              className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-red-500/10 hover:text-red-500"
               onClick={handleDelete}
               aria-label={`Delete ${node.data.name}`}
               tabIndex={-1}
             >
-              <Trash2 className="size-3" />
+              <Trash2 className="size-3.5" />
             </button>
           </div>
         </>

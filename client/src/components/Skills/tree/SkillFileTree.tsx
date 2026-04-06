@@ -98,9 +98,9 @@ export default function SkillFileTree({
     [onMoveNode],
   );
 
-  const rowHeight = 28;
+  const rowHeight = 34;
   const autoHeight = treeData.length * rowHeight + 8;
-  const resolvedHeight = height ?? Math.min(autoHeight, 400);
+  const resolvedHeight = height ?? Math.min(autoHeight, 800);
 
   return (
     <TreeActionsContext.Provider value={treeActions}>
