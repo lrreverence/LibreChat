@@ -67,7 +67,7 @@ function ToolbarButton({
       render={
         <button
           type="button"
-          className="rounded-md bg-transparent p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
+          className="rounded-lg bg-transparent p-1.5 text-text-secondary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
           onClick={onClick}
           aria-label={label}
         >
@@ -179,20 +179,20 @@ function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
 
   return (
     <div className="flex h-full w-full bg-presentation">
-      <div className="flex h-full w-52 shrink-0 flex-col border-r border-border-light">
-        <div className="flex items-center gap-0.5 border-b border-border-light px-2 py-1.5">
+      <div className="flex h-full w-64 shrink-0 flex-col border-r border-border-light">
+        <div className="flex items-center gap-1 border-b border-border-light px-2.5 py-2">
           <ToolbarButton onClick={handleNewFile} label={localize('com_ui_skill_new_file')}>
-            <FilePlus className="size-3.5" />
+            <FilePlus className="size-4" />
           </ToolbarButton>
           <ToolbarButton onClick={handleNewFolder} label={localize('com_ui_skill_new_folder')}>
-            <FolderPlus className="size-3.5" />
+            <FolderPlus className="size-4" />
           </ToolbarButton>
           <ToolbarButton onClick={handleUpload} label={localize('com_ui_skill_upload_file')}>
-            <Upload className="size-3.5" />
+            <Upload className="size-4" />
           </ToolbarButton>
           <div className="flex-1" />
           <ToolbarButton onClick={handleEditMetadata} label={localize('com_ui_edit')}>
-            <Pencil className="size-3.5" />
+            <Pencil className="size-4" />
           </ToolbarButton>
         </div>
         <div className="flex-1 overflow-y-auto">
