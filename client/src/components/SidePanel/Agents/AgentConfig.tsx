@@ -2,7 +2,12 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { useToastContext } from '@librechat/client';
 import { Controller, useWatch, useFormContext } from 'react-hook-form';
-import { EModelEndpoint, PermissionTypes, Permissions, getEndpointField } from 'librechat-data-provider';
+import {
+  EModelEndpoint,
+  PermissionTypes,
+  Permissions,
+  getEndpointField,
+} from 'librechat-data-provider';
 import type { AgentForm, IconComponentTypes } from '~/common';
 import {
   removeFocusOutlines,
@@ -73,10 +78,7 @@ export default function AgentConfig() {
     permissionType: PermissionTypes.SKILLS,
     permission: Permissions.USE,
   });
-  const { data: skillsData } = useListSkillsQuery(
-    { limit: 100 },
-    { enabled: hasSkillsAccess },
-  );
+  const { data: skillsData } = useListSkillsQuery({ limit: 100 }, { enabled: hasSkillsAccess });
   const skillsMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const skill of skillsData?.data ?? []) {
