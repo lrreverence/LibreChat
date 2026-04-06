@@ -17,7 +17,7 @@ export const useListSkillsQuery = <TData = t.TSkillListResponse>(
     {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       ...config,
     },
   );

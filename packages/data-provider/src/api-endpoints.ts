@@ -275,9 +275,14 @@ export const skills = ({ path = '', options }: { path?: string; options?: object
     url += `/${path}`;
   }
 
-  if (options && Object.keys(options).length > 0) {
-    const queryParams = new URLSearchParams(options as Record<string, string>).toString();
-    url += `?${queryParams}`;
+  if (options) {
+    const filtered = Object.entries(options as Record<string, unknown>).filter(
+      ([, v]) => v != null,
+    );
+    if (filtered.length > 0) {
+      const queryParams = new URLSearchParams(filtered.map(([k, v]) => [k, String(v)])).toString();
+      url += `?${queryParams}`;
+    }
   }
 
   return url;

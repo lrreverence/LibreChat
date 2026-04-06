@@ -1,18 +1,16 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Button, Sidebar, TooltipAnchor } from '@librechat/client';
-import { useLocalize } from '~/hooks';
 import { useListSkillsQuery, useListSkillFoldersQuery } from '~/data-provider';
-import { SkillList } from '../lists';
 import FilterSkills from './FilterSkills';
+import { useLocalize } from '~/hooks';
+import { SkillList } from '../lists';
 import { cn } from '~/utils';
 
 export default function SkillsSidePanel({
-  children,
   className = '',
   closePanelRef,
   onClose,
 }: {
-  children?: React.ReactNode;
   className?: string;
   closePanelRef?: React.RefObject<HTMLButtonElement>;
   onClose?: () => void;
@@ -24,10 +22,9 @@ export default function SkillsSidePanel({
     setSearchTerm(e.target.value);
   }, []);
 
-  const skillsQuery = useListSkillsQuery(
-    { search: searchTerm || undefined },
-    { enabled: true },
-  );
+  const skillsQuery = useListSkillsQuery(searchTerm ? { search: searchTerm } : {}, {
+    enabled: true,
+  });
   const foldersQuery = useListSkillFoldersQuery({ enabled: true });
 
   const filteredSkills = useMemo(() => {
@@ -42,10 +39,7 @@ export default function SkillsSidePanel({
   const isLoading = skillsQuery.isLoading || foldersQuery.isLoading;
 
   return (
-    <div
-      id="skills-panel"
-      className={cn('flex h-full w-full flex-col md:mr-2 md:w-[450px] md:shrink-0', className)}
-    >
+    <div id="skills-panel" className={cn('flex h-full w-full flex-col', className)}>
       {onClose && (
         <div className="flex items-center justify-end px-2 py-[2px] md:py-2">
           <TooltipAnchor
@@ -69,7 +63,6 @@ export default function SkillsSidePanel({
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-2 overflow-hidden">
         <FilterSkills searchTerm={searchTerm} onSearchChange={handleSearchChange} />
-        {children}
         <div className="relative flex h-full flex-col overflow-y-auto">
           <SkillList
             skills={filteredSkills}
