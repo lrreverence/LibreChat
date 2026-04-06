@@ -1,29 +1,33 @@
+import { Spinner } from '@librechat/client';
 import { Navigate, useParams, useLocation } from 'react-router-dom';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
-import { Spinner } from '@librechat/client';
-import { useGetSkillByIdQuery } from '~/data-provider/Skills/queries';
-import { SkillDetail } from '~/components/Skills/display';
-import { CreateSkillForm, SkillForm } from '~/components/Skills/forms';
-import { useHasAccess, useLocalize } from '~/hooks';
 import type { ParsedSkillMd } from '~/components/Skills/utils/parseSkillMd';
+import { CreateSkillForm, SkillForm } from '~/components/Skills/forms';
+import { useHasAccess, useAuthContext } from '~/hooks';
 
 interface LocationState {
   uploadData?: ParsedSkillMd;
 }
 
 export default function SkillsView() {
-  const { skillId, action } = useParams();
+  const { skillId } = useParams();
   const location = useLocation();
-  const localize = useLocalize();
+  const { user, roles } = useAuthContext();
   const isNew = skillId === undefined;
-  const isEditing = action === 'edit';
 
   const hasAccess = useHasAccess({
     permissionType: PermissionTypes.SKILLS,
     permission: Permissions.USE,
   });
 
-  const { data: skill, isLoading, isError } = useGetSkillByIdQuery(skillId);
+  const rolesLoaded = user?.role != null && roles?.[user.role] != null;
+  if (!rolesLoaded) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center bg-presentation">
+        <Spinner className="text-text-secondary" />
+      </div>
+    );
+  }
 
   if (!hasAccess) {
     return <Navigate to="/c/new" replace />;
@@ -32,56 +36,32 @@ export default function SkillsView() {
   if (isNew) {
     const state = location.state as LocationState | undefined;
     const uploadData = state?.uploadData;
-
-    if (uploadData) {
-      return (
-        <div className="flex h-full w-full flex-col overflow-y-auto bg-presentation">
-          <CreateSkillForm
-            defaultValues={{
-              name: uploadData.name,
-              description: uploadData.description,
-              content: uploadData.content,
-              ...(uploadData.invocationMode ? { invocationMode: uploadData.invocationMode } : {}),
-            }}
-          />
-        </div>
-      );
-    }
+    const formKey = uploadData ? `upload-${location.key}` : 'new';
 
     return (
       <div className="flex h-full w-full flex-col overflow-y-auto bg-presentation">
-        <CreateSkillForm />
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex h-full w-full flex-col items-center justify-center bg-presentation">
-        <Spinner className="text-text-secondary" />
-      </div>
-    );
-  }
-
-  if (isError || !skill) {
-    return (
-      <div className="flex h-full w-full flex-col items-center justify-center bg-presentation">
-        <p className="text-text-secondary text-sm">{localize('com_ui_skill_not_found')}</p>
-      </div>
-    );
-  }
-
-  if (isEditing) {
-    return (
-      <div className="flex h-full w-full flex-col overflow-y-auto bg-presentation">
-        <SkillForm skillId={skill._id} />
+        <CreateSkillForm
+          key={formKey}
+          defaultValues={
+            uploadData
+              ? {
+                  name: uploadData.name,
+                  description: uploadData.description,
+                  content: uploadData.content,
+                  ...(uploadData.invocationMode
+                    ? { invocationMode: uploadData.invocationMode }
+                    : {}),
+                }
+              : undefined
+          }
+        />
       </div>
     );
   }
 
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto bg-presentation">
-      <SkillDetail skill={skill} />
+      <SkillForm skillId={skillId} />
     </div>
   );
 }
