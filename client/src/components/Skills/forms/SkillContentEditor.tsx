@@ -8,6 +8,7 @@ import rehypeHighlight from 'rehype-highlight';
 import { EditIcon, FileText, Check } from 'lucide-react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { TextareaAutosize, Button, TooltipAnchor } from '@librechat/client';
+import type { RegisterOptions } from 'react-hook-form';
 import type { PluggableList } from 'unified';
 import { codeNoExecution } from '~/components/Chat/Messages/Content/MarkdownComponents';
 import { cn, langSubset } from '~/utils';
@@ -17,11 +18,20 @@ interface SkillContentEditorProps {
   name: string;
   isEditing: boolean;
   setIsEditing: React.Dispatch<React.SetStateAction<boolean>>;
+  rules?: RegisterOptions;
 }
 
-const SkillContentEditor: React.FC<SkillContentEditorProps> = ({ name, isEditing, setIsEditing }) => {
+const SkillContentEditor: React.FC<SkillContentEditorProps> = ({
+  name,
+  isEditing,
+  setIsEditing,
+  rules,
+}) => {
   const localize = useLocalize();
-  const { control } = useFormContext();
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext();
 
   const EditorIcon = useMemo(() => {
     return isEditing ? Check : EditIcon;
@@ -85,6 +95,7 @@ const SkillContentEditor: React.FC<SkillContentEditorProps> = ({ name, isEditing
         <Controller
           name={name}
           control={control}
+          rules={rules}
           render={({ field }) =>
             isEditing ? (
               <TextareaAutosize
@@ -141,6 +152,11 @@ const SkillContentEditor: React.FC<SkillContentEditorProps> = ({ name, isEditing
             )
           }
         />
+        {errors[name] && (
+          <p className="mt-1 text-sm text-red-500" role="alert">
+            {errors[name]?.message as string}
+          </p>
+        )}
       </div>
     </div>
   );
