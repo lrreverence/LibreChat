@@ -1,32 +1,15 @@
-import { useState, useCallback, useRef } from 'react';
 import { Spinner } from '@librechat/client';
 import { Navigate, useParams, useLocation } from 'react-router-dom';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import type { ParsedSkillMd } from '~/components/Skills/utils/parseSkillMd';
-import {
-  SkillFileTree,
-  TreeToolbar,
-  SkillFileEditor,
-  SkillFilePreview,
-} from '~/components/Skills/tree';
-import {
-  useGetSkillTreeQuery,
-  useCreateSkillNodeMutation,
-  useUpdateSkillNodeMutation,
-  useDeleteSkillNodeMutation,
-} from '~/data-provider';
+import { SkillFileEditor, SkillFilePreview } from '~/components/Skills/tree';
+import { useGetSkillNodeContentQuery } from '~/data-provider';
 import { CreateSkillForm, SkillForm } from '~/components/Skills/forms';
 import SkillState from '~/components/Skills/display/SkillState';
 import { useHasAccess, useAuthContext, useLocalize } from '~/hooks';
 
 interface LocationState {
   uploadData?: ParsedSkillMd;
-}
-
-interface SelectedNode {
-  id: string;
-  type: 'file' | 'folder';
-  name: string;
 }
 
 const TEXT_EXTENSIONS = new Set([
@@ -60,136 +43,47 @@ function isTextFile(name: string): boolean {
   return false;
 }
 
-function renderFilePanel(
-  skillId: string,
-  selectedNode: SelectedNode | null,
-  localize: ReturnType<typeof useLocalize>,
-) {
-  if (selectedNode?.type !== 'file') {
+function FileView({ skillId, nodeId }: { skillId: string; nodeId: string }) {
+  const { data, isLoading } = useGetSkillNodeContentQuery(skillId, nodeId);
+
+  if (isLoading) {
     return (
-      <SkillState
-        title={localize('com_ui_skill_select_file')}
-        description={localize('com_ui_skill_select_file_desc')}
-      />
+      <div className="flex h-full w-full items-center justify-center bg-presentation">
+        <Spinner className="text-text-secondary" />
+      </div>
     );
   }
 
-  if (isTextFile(selectedNode.name)) {
+  const fileName = nodeId;
+  const mimeType = data?.mimeType ?? 'text/plain';
+
+  if (mimeType.startsWith('text/') || isTextFile(fileName)) {
     return (
-      <SkillFileEditor skillId={skillId} nodeId={selectedNode.id} fileName={selectedNode.name} />
+      <div className="flex h-full w-full flex-col bg-presentation">
+        <SkillFileEditor skillId={skillId} nodeId={nodeId} fileName={fileName} />
+      </div>
     );
   }
 
   return (
-    <SkillFilePreview skillId={skillId} nodeId={selectedNode.id} fileName={selectedNode.name} />
+    <div className="flex h-full w-full flex-col bg-presentation">
+      <SkillFilePreview skillId={skillId} nodeId={nodeId} fileName={fileName} />
+    </div>
   );
 }
 
 export default function SkillsView() {
-  const { skillId } = useParams();
+  const { skillId, nodeId } = useParams();
   const location = useLocation();
   const { user, roles } = useAuthContext();
   const localize = useLocalize();
   const isNew = skillId === undefined;
   const isEdit = location.pathname.endsWith('/edit');
-  const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasAccess = useHasAccess({
     permissionType: PermissionTypes.SKILLS,
     permission: Permissions.USE,
   });
-
-  const { data: treeData, isLoading: treeLoading } = useGetSkillTreeQuery(
-    !isNew && !isEdit ? skillId : null,
-  );
-  const createNode = useCreateSkillNodeMutation(skillId ?? '');
-  const updateNode = useUpdateSkillNodeMutation(skillId ?? '');
-  const deleteNode = useDeleteSkillNodeMutation(skillId ?? '');
-
-  const handleSelectNode = useCallback(
-    (nodeId: string, nodeType: 'file' | 'folder') => {
-      const node = treeData?.nodes.find((n) => n._id === nodeId);
-      if (node) {
-        setSelectedNode({ id: nodeId, type: nodeType, name: node.name });
-      }
-    },
-    [treeData?.nodes],
-  );
-
-  const handleRenameNode = useCallback(
-    (nodeId: string, newName: string) => {
-      updateNode.mutate({ skillId: skillId!, nodeId, data: { name: newName } });
-    },
-    [updateNode, skillId],
-  );
-
-  const handleMoveNode = useCallback(
-    (nodeId: string, newParentId: string | null, index: number) => {
-      updateNode.mutate({
-        skillId: skillId!,
-        nodeId,
-        data: { parentId: newParentId, order: index },
-      });
-    },
-    [updateNode, skillId],
-  );
-
-  const handleNewFile = useCallback(() => {
-    const parentId = selectedNode?.type === 'folder' ? selectedNode.id : null;
-    createNode.mutate({
-      skillId: skillId!,
-      data: { type: 'file', name: 'untitled.md', parentId },
-    });
-  }, [createNode, skillId, selectedNode]);
-
-  const handleNewFolder = useCallback(() => {
-    const parentId = selectedNode?.type === 'folder' ? selectedNode.id : null;
-    createNode.mutate({
-      skillId: skillId!,
-      data: { type: 'folder', name: 'new-folder', parentId },
-    });
-  }, [createNode, skillId, selectedNode]);
-
-  const handleUpload = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (!files || !skillId) {
-        return;
-      }
-      const parentId = selectedNode?.type === 'folder' ? selectedNode.id : null;
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', 'file');
-        formData.append('name', file.name);
-        if (parentId) {
-          formData.append('parentId', parentId);
-        }
-        createNode.mutate({ skillId, data: formData });
-      }
-      e.target.value = '';
-    },
-    [skillId, selectedNode, createNode],
-  );
-
-  const handleDeleteNode = useCallback(
-    (nodeId: string) => {
-      if (!skillId) {
-        return;
-      }
-      deleteNode.mutate({ skillId, nodeId });
-      if (selectedNode?.id === nodeId) {
-        setSelectedNode(null);
-      }
-    },
-    [skillId, deleteNode, selectedNode],
-  );
 
   const rolesLoaded = user?.role != null && roles?.[user.role] != null;
   if (!rolesLoaded) {
@@ -237,43 +131,15 @@ export default function SkillsView() {
     );
   }
 
+  if (nodeId && skillId) {
+    return <FileView skillId={skillId} nodeId={nodeId} />;
+  }
+
   return (
-    <div className="flex h-full w-full bg-presentation">
-      <div className="flex h-full w-64 shrink-0 flex-col border-r border-border-light">
-        <TreeToolbar
-          onNewFile={handleNewFile}
-          onNewFolder={handleNewFolder}
-          onUpload={handleUpload}
-        />
-        {treeLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <Spinner className="text-text-secondary" />
-          </div>
-        ) : (
-          <div className="flex-1 overflow-hidden">
-            <SkillFileTree
-              nodes={treeData?.nodes ?? []}
-              selectedNodeId={selectedNode?.id ?? null}
-              onSelectNode={handleSelectNode}
-              onRenameNode={handleRenameNode}
-              onMoveNode={handleMoveNode}
-              onDeleteNode={handleDeleteNode}
-              height={600}
-            />
-          </div>
-        )}
-      </div>
-      <div className="flex-1 overflow-hidden">
-        {renderFilePanel(skillId!, selectedNode, localize)}
-      </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={handleFileChange}
-        aria-hidden="true"
-        tabIndex={-1}
+    <div className="flex h-full w-full flex-col overflow-y-auto bg-presentation">
+      <SkillState
+        title={localize('com_ui_skill_select_file')}
+        description={localize('com_ui_skill_select_file_desc')}
       />
     </div>
   );

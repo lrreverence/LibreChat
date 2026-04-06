@@ -1,42 +1,17 @@
-import { useMemo } from 'react';
 import { FileText } from 'lucide-react';
 import { Skeleton } from '@librechat/client';
-import type { TSkill, TSkillFolder } from 'librechat-data-provider';
-import FolderSection from './FolderSection';
+import type { TSkill } from 'librechat-data-provider';
+import SkillListItem from './SkillListItem';
 import { useLocalize } from '~/hooks';
 
 export default function SkillList({
   skills = [],
-  folders = [],
   isLoading,
-  isChatRoute = true,
 }: {
   skills?: TSkill[];
-  folders?: TSkillFolder[];
   isLoading: boolean;
-  isChatRoute?: boolean;
 }) {
   const localize = useLocalize();
-
-  const { folderMap: _folderMap, grouped } = useMemo(() => {
-    const fMap = new Map<string, TSkillFolder>();
-    for (const folder of folders) {
-      fMap.set(folder._id, folder);
-    }
-
-    const buckets = new Map<string | null, TSkill[]>();
-    for (const skill of skills) {
-      const key = skill.folderId && fMap.has(skill.folderId) ? skill.folderId : null;
-      const bucket = buckets.get(key);
-      if (bucket) {
-        bucket.push(skill);
-      } else {
-        buckets.set(key, [skill]);
-      }
-    }
-
-    return { folderMap: fMap, grouped: buckets };
-  }, [skills, folders]);
 
   if (isLoading) {
     return (
@@ -61,38 +36,16 @@ export default function SkillList({
     );
   }
 
-  const folderSections: React.ReactNode[] = [];
-  for (const folder of folders) {
-    const folderSkills = grouped.get(folder._id);
-    if (folderSkills && folderSkills.length > 0) {
-      folderSections.push(
-        <FolderSection
-          key={folder._id}
-          folder={folder}
-          skills={folderSkills}
-          isChatRoute={isChatRoute}
-        />,
-      );
-    }
-  }
-
-  const uncategorized = grouped.get(null);
-  if (uncategorized && uncategorized.length > 0) {
-    folderSections.push(
-      <FolderSection
-        key="uncategorized"
-        folder={null}
-        skills={uncategorized}
-        isChatRoute={isChatRoute}
-      />,
-    );
-  }
-
   return (
-    <div className="flex h-full flex-col">
-      <section className="flex-grow overflow-y-auto" aria-label={localize('com_ui_skill_list')}>
-        <div className="overflow-y-auto overflow-x-hidden">{folderSections}</div>
-      </section>
-    </div>
+    <section
+      className="flex h-full flex-col overflow-y-auto"
+      aria-label={localize('com_ui_skill_list')}
+    >
+      <div className="overflow-y-auto overflow-x-hidden">
+        {skills.map((skill) => (
+          <SkillListItem key={skill._id} skill={skill} />
+        ))}
+      </div>
+    </section>
   );
 }

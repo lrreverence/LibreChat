@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Button, Sidebar, TooltipAnchor } from '@librechat/client';
-import { useListSkillsQuery, useListSkillFoldersQuery } from '~/data-provider';
+import { useListSkillsQuery } from '~/data-provider';
 import FilterSkills from './FilterSkills';
 import { useLocalize } from '~/hooks';
 import { SkillList } from '../lists';
@@ -25,8 +25,6 @@ export default function SkillsSidePanel({
   const skillsQuery = useListSkillsQuery(searchTerm ? { search: searchTerm } : {}, {
     enabled: true,
   });
-  const foldersQuery = useListSkillFoldersQuery({ enabled: true });
-
   const filteredSkills = useMemo(() => {
     const skills = skillsQuery.data?.data ?? [];
     if (!searchTerm) {
@@ -36,7 +34,7 @@ export default function SkillsSidePanel({
     return skills.filter((s) => s.name.toLowerCase().includes(term));
   }, [skillsQuery.data?.data, searchTerm]);
 
-  const isLoading = skillsQuery.isLoading || foldersQuery.isLoading;
+  const isLoading = skillsQuery.isLoading;
 
   return (
     <div id="skills-panel" className={cn('flex h-full w-full flex-col', className)}>
@@ -64,12 +62,7 @@ export default function SkillsSidePanel({
       <div className="flex min-w-0 flex-1 flex-col gap-2 overflow-hidden">
         <FilterSkills searchTerm={searchTerm} onSearchChange={handleSearchChange} />
         <div className="relative flex h-full flex-col overflow-y-auto">
-          <SkillList
-            skills={filteredSkills}
-            folders={foldersQuery.data ?? []}
-            isLoading={isLoading}
-            isChatRoute={false}
-          />
+          <SkillList skills={filteredSkills} isLoading={isLoading} />
         </div>
       </div>
     </div>

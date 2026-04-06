@@ -1,5 +1,5 @@
 import { memo, useCallback, useContext, createContext } from 'react';
-import { File, Folder, FolderOpen, ChevronRight, Trash2 } from 'lucide-react';
+import { File, Folder, FolderOpen, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '~/utils';
 import type { NodeRendererProps } from 'react-arborist';
 
@@ -30,6 +30,14 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       node.select();
     }
   }, [node, isFolder]);
+
+  const handleRename = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      node.edit();
+    },
+    [node],
+  );
 
   const handleDelete = useCallback(
     (e: React.MouseEvent) => {
@@ -98,15 +106,26 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       ) : (
         <>
           <span className="min-w-0 flex-1 truncate">{node.data.name}</span>
-          <button
-            type="button"
-            className="ml-auto hidden shrink-0 rounded p-0.5 text-text-tertiary hover:text-red-500 group-hover:block"
-            onClick={handleDelete}
-            aria-label={`Delete ${node.data.name}`}
-            tabIndex={-1}
-          >
-            <Trash2 className="size-3.5" />
-          </button>
+          <div className="ml-auto hidden shrink-0 items-center gap-0.5 group-hover:flex">
+            <button
+              type="button"
+              className="rounded p-0.5 text-text-tertiary hover:text-text-primary"
+              onClick={handleRename}
+              aria-label={`Rename ${node.data.name}`}
+              tabIndex={-1}
+            >
+              <Pencil className="size-3" />
+            </button>
+            <button
+              type="button"
+              className="rounded p-0.5 text-text-tertiary hover:text-red-500"
+              onClick={handleDelete}
+              aria-label={`Delete ${node.data.name}`}
+              tabIndex={-1}
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
         </>
       )}
     </div>
