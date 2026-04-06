@@ -182,16 +182,11 @@ function SkillListItem({ skill }: { skill: TSkill }) {
               />
             )}
           </div>
-          <div
-            className={cn(
-              'ease-[cubic-bezier(0.25,0.1,0.25,1)] grid transition-[grid-template-rows,opacity] duration-300',
-              expanded ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
-            )}
-          >
-            <p className="overflow-hidden text-xs leading-relaxed text-text-secondary">
+          {skill.description && (
+            <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-text-secondary">
               {skill.description}
             </p>
-          </div>
+          )}
         </div>
         <div
           className={cn(

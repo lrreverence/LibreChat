@@ -99,7 +99,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       aria-selected={isSelected}
       aria-expanded={isFolder ? isOpen : undefined}
       className={cn(
-        'group flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-[3px] text-[13px]',
+        'group flex cursor-pointer items-center gap-1 overflow-hidden rounded-md py-[3px] pl-1.5 pr-0.5 text-[13px]',
         'transition-colors duration-100',
         isSelected
           ? 'bg-surface-active text-text-primary'

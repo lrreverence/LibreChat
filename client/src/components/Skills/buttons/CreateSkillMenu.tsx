@@ -86,7 +86,7 @@ export default function CreateSkillMenu() {
         onChange={handleSelect}
         options={options}
         className="shrink-0 rounded-lg bg-transparent [&>button]:size-9"
-        icon={<Plus className="size-4" />}
+        icon={<Plus className="size-5" />}
         ariaLabel={localize('com_ui_create_skill')}
         iconOnly
       />
