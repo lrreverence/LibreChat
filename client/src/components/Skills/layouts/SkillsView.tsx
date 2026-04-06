@@ -1,9 +1,17 @@
-import { Spinner } from '@librechat/client';
-import { Navigate, useParams, useLocation } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { FilePlus, FolderPlus, Pencil, Upload } from 'lucide-react';
+import { Spinner, TooltipAnchor } from '@librechat/client';
+import { Navigate, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import type { ParsedSkillMd } from '~/components/Skills/utils/parseSkillMd';
-import { SkillFileEditor, SkillFilePreview } from '~/components/Skills/tree';
-import { useGetSkillNodeContentQuery } from '~/data-provider';
+import { SkillFileTree, SkillFileEditor, SkillFilePreview } from '~/components/Skills/tree';
+import {
+  useGetSkillTreeQuery,
+  useGetSkillNodeContentQuery,
+  useCreateSkillNodeMutation,
+  useUpdateSkillNodeMutation,
+  useDeleteSkillNodeMutation,
+} from '~/data-provider';
 import { CreateSkillForm, SkillForm } from '~/components/Skills/forms';
 import SkillState from '~/components/Skills/display/SkillState';
 import { useHasAccess, useAuthContext, useLocalize } from '~/hooks';
@@ -43,13 +51,40 @@ function isTextFile(name: string): boolean {
   return false;
 }
 
-function FileView({ skillId, nodeId }: { skillId: string; nodeId: string }) {
+function ToolbarButton({
+  onClick,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <TooltipAnchor
+      description={label}
+      side="bottom"
+      render={
+        <button
+          type="button"
+          className="rounded-md bg-transparent p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
+          onClick={onClick}
+          aria-label={label}
+        >
+          {children}
+        </button>
+      }
+    />
+  );
+}
+
+function FilePanel({ skillId, nodeId }: { skillId: string; nodeId: string }) {
   const { data, isLoading } = useGetSkillNodeContentQuery(skillId, nodeId);
 
   if (isLoading) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-presentation">
-        <Spinner className="text-text-secondary" />
+      <div className="flex h-full items-center justify-center bg-presentation">
+        <Spinner className="text-text-tertiary" />
       </div>
     );
   }
@@ -58,16 +93,137 @@ function FileView({ skillId, nodeId }: { skillId: string; nodeId: string }) {
   const mimeType = data?.mimeType ?? 'text/plain';
 
   if (mimeType.startsWith('text/') || isTextFile(fileName)) {
-    return (
-      <div className="flex h-full w-full flex-col bg-presentation">
-        <SkillFileEditor skillId={skillId} nodeId={nodeId} fileName={fileName} />
-      </div>
-    );
+    return <SkillFileEditor skillId={skillId} nodeId={nodeId} fileName={fileName} />;
   }
 
+  return <SkillFilePreview skillId={skillId} nodeId={nodeId} fileName={fileName} />;
+}
+
+function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
+  const localize = useLocalize();
+  const navigate = useNavigate();
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(nodeId ?? null);
+
+  const { data: treeData, isLoading: treeLoading } = useGetSkillTreeQuery(skillId);
+  const createNode = useCreateSkillNodeMutation(skillId);
+  const updateNode = useUpdateSkillNodeMutation(skillId);
+  const deleteNode = useDeleteSkillNodeMutation(skillId);
+
+  const handleSelectNode = useCallback(
+    (id: string, nodeType: 'file' | 'folder') => {
+      if (nodeType === 'file') {
+        setSelectedNodeId(id);
+        navigate(`/skills/${skillId}/file/${id}`);
+      }
+    },
+    [navigate, skillId],
+  );
+
+  const handleRenameNode = useCallback(
+    (id: string, newName: string) => {
+      updateNode.mutate({ skillId, nodeId: id, data: { name: newName } });
+    },
+    [updateNode, skillId],
+  );
+
+  const handleMoveNode = useCallback(
+    (id: string, newParentId: string | null, index: number) => {
+      updateNode.mutate({ skillId, nodeId: id, data: { parentId: newParentId, order: index } });
+    },
+    [updateNode, skillId],
+  );
+
+  const handleDeleteNode = useCallback(
+    (id: string) => {
+      deleteNode.mutate({ skillId, nodeId: id });
+      if (selectedNodeId === id) {
+        setSelectedNodeId(null);
+        navigate(`/skills/${skillId}`);
+      }
+    },
+    [deleteNode, skillId, selectedNodeId, navigate],
+  );
+
+  const handleNewFile = useCallback(() => {
+    createNode.mutate({ skillId, data: { type: 'file', name: 'untitled.md', parentId: null } });
+  }, [createNode, skillId]);
+
+  const handleNewFolder = useCallback(() => {
+    createNode.mutate({ skillId, data: { type: 'folder', name: 'new-folder', parentId: null } });
+  }, [createNode, skillId]);
+
+  const handleUpload = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.onchange = () => {
+      const files = input.files;
+      if (!files) {
+        return;
+      }
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'file');
+        formData.append('name', file.name);
+        createNode.mutate({ skillId, data: formData });
+      }
+    };
+    input.click();
+  }, [skillId, createNode]);
+
+  const handleEditMetadata = useCallback(() => {
+    navigate(`/skills/${skillId}/edit`);
+  }, [navigate, skillId]);
+
   return (
-    <div className="flex h-full w-full flex-col bg-presentation">
-      <SkillFilePreview skillId={skillId} nodeId={nodeId} fileName={fileName} />
+    <div className="flex h-full w-full bg-presentation">
+      <div className="flex h-full w-60 shrink-0 flex-col border-r border-border-light">
+        <div className="flex items-center gap-0.5 border-b border-border-light px-2 py-1.5">
+          <ToolbarButton onClick={handleNewFile} label={localize('com_ui_skill_new_file')}>
+            <FilePlus className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleNewFolder} label={localize('com_ui_skill_new_folder')}>
+            <FolderPlus className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleUpload} label={localize('com_ui_skill_upload_file')}>
+            <Upload className="size-3.5" />
+          </ToolbarButton>
+          <div className="flex-1" />
+          <ToolbarButton onClick={handleEditMetadata} label={localize('com_ui_edit')}>
+            <Pencil className="size-3.5" />
+          </ToolbarButton>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {treeLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner className="size-4 text-text-tertiary" />
+            </div>
+          ) : (
+            <div className="py-1">
+              <SkillFileTree
+                nodes={treeData?.nodes ?? []}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={handleSelectNode}
+                onRenameNode={handleRenameNode}
+                onMoveNode={handleMoveNode}
+                onDeleteNode={handleDeleteNode}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        {nodeId ? (
+          <FilePanel skillId={skillId} nodeId={nodeId} />
+        ) : (
+          <SkillState
+            title={localize('com_ui_skill_select_file')}
+            description={localize('com_ui_skill_select_file_desc')}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -76,7 +232,6 @@ export default function SkillsView() {
   const { skillId, nodeId } = useParams();
   const location = useLocation();
   const { user, roles } = useAuthContext();
-  const localize = useLocalize();
   const isNew = skillId === undefined;
   const isEdit = location.pathname.endsWith('/edit');
 
@@ -131,16 +286,9 @@ export default function SkillsView() {
     );
   }
 
-  if (nodeId && skillId) {
-    return <FileView skillId={skillId} nodeId={nodeId} />;
+  if (skillId) {
+    return <TreeView skillId={skillId} nodeId={nodeId} />;
   }
 
-  return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-presentation">
-      <SkillState
-        title={localize('com_ui_skill_select_file')}
-        description={localize('com_ui_skill_select_file_desc')}
-      />
-    </div>
-  );
+  return null;
 }
