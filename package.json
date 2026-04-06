@@ -184,5 +184,8 @@
       "admin/",
       "packages/"
     ]
+  },
+  "dependencies": {
+    "react-arborist": "^3.4.3"
   }
 }
