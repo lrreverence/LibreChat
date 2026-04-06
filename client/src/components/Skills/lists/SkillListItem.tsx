@@ -1,18 +1,12 @@
 import { memo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { EarthIcon, User } from 'lucide-react';
 import { TooltipAnchor } from '@librechat/client';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { TSkill } from 'librechat-data-provider';
 import { useLocalize, useAuthContext } from '~/hooks';
 import { cn } from '~/utils';
 
-function SkillListItem({
-  skill,
-  isChatRoute = true,
-}: {
-  skill: TSkill;
-  isChatRoute?: boolean;
-}) {
+function SkillListItem({ skill, isChatRoute = true }: { skill: TSkill; isChatRoute?: boolean }) {
   const localize = useLocalize();
   const navigate = useNavigate();
   const params = useParams();
@@ -44,9 +38,6 @@ function SkillListItem({
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-semibold text-text-primary" title={skill.name}>
               {skill.name}
-            </span>
-            <span className="shrink-0 rounded bg-surface-tertiary px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
-              {skill.invocationMode}
             </span>
             {isShared && (
               <TooltipAnchor

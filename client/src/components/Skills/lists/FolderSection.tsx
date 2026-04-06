@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronRight, FolderOpen } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { ChevronDown, FolderOpen } from 'lucide-react';
 import type { TSkill, TSkillFolder } from 'librechat-data-provider';
-import { useLocalize } from '~/hooks';
 import SkillListItem from './SkillListItem';
+import { useLocalize } from '~/hooks';
+import { cn } from '~/utils';
 
 export default function FolderSection({
   folder,
@@ -15,9 +16,9 @@ export default function FolderSection({
 }) {
   const localize = useLocalize();
   const [expanded, setExpanded] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const sectionTitle = folder?.name ?? localize('com_ui_uncategorized');
-  const Chevron = expanded ? ChevronDown : ChevronRight;
 
   return (
     <div className="mb-1">
@@ -28,18 +29,31 @@ export default function FolderSection({
         aria-expanded={expanded}
         aria-label={sectionTitle}
       >
-        <Chevron className="size-3.5 shrink-0 text-text-secondary" aria-hidden="true" />
+        <ChevronDown
+          className={cn(
+            'size-3.5 shrink-0 text-text-secondary transition-transform duration-200',
+            !expanded && '-rotate-90',
+          )}
+          aria-hidden="true"
+        />
         <FolderOpen className="size-3.5 shrink-0 text-text-secondary" aria-hidden="true" />
         <span className="truncate">{sectionTitle}</span>
-        <span className="ml-auto shrink-0 text-xs text-text-tertiary">{skills.length}</span>
+        <span className="ml-auto shrink-0 text-xs text-text-primary">{skills.length}</span>
       </button>
-      {expanded && (
-        <div className="pl-3 pt-1">
+      <div
+        ref={contentRef}
+        className="overflow-hidden transition-[max-height,opacity] duration-200 ease-in-out"
+        style={{
+          maxHeight: expanded ? `${(contentRef.current?.scrollHeight ?? 1000) + 16}px` : '0px',
+          opacity: expanded ? 1 : 0,
+        }}
+      >
+        <div className="pt-1">
           {skills.map((skill) => (
             <SkillListItem key={skill._id} skill={skill} isChatRoute={isChatRoute} />
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

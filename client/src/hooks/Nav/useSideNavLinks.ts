@@ -3,7 +3,7 @@ import { MCPIcon, AttachmentIcon, OpenAIMinimalIcon } from '@librechat/client';
 import {
   Bot,
   Brain,
-  Wand2,
+  ScrollText,
   Bookmark,
   NotebookPen,
   ArrowRightToLine,
@@ -92,7 +92,7 @@ export default function useSideNavLinks({
       links.push({
         title: 'com_ui_skills',
         label: '',
-        icon: Wand2,
+        icon: ScrollText,
         id: 'skills',
         Component: SkillsAccordion,
       });

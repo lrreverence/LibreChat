@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import { FileText } from 'lucide-react';
 import { Skeleton } from '@librechat/client';
 import type { TSkill, TSkillFolder } from 'librechat-data-provider';
-import { useLocalize } from '~/hooks';
 import FolderSection from './FolderSection';
+import { useLocalize } from '~/hooks';
 
 export default function SkillList({
   skills = [],
@@ -18,7 +18,7 @@ export default function SkillList({
 }) {
   const localize = useLocalize();
 
-  const { folderMap, grouped } = useMemo(() => {
+  const { folderMap: _folderMap, grouped } = useMemo(() => {
     const fMap = new Map<string, TSkillFolder>();
     for (const folder of folders) {
       fMap.set(folder._id, folder);
@@ -49,16 +49,14 @@ export default function SkillList({
 
   if (skills.length === 0) {
     return (
-      <div className="my-2 flex flex-col items-center justify-center rounded-lg border border-border-medium bg-transparent p-6 text-center">
+      <div className="my-2 flex flex-col items-center justify-center rounded-lg border border-border-light bg-transparent p-6 text-center">
         <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-surface-tertiary">
           <FileText className="size-5 text-text-secondary" aria-hidden="true" />
         </div>
         <p className="text-sm font-medium text-text-primary">
           {localize('com_ui_no_skills_title')}
         </p>
-        <p className="mt-0.5 text-xs text-text-secondary">
-          {localize('com_ui_add_first_skill')}
-        </p>
+        <p className="mt-0.5 text-xs text-text-secondary">{localize('com_ui_add_first_skill')}</p>
       </div>
     );
   }
