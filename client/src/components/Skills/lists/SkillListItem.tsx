@@ -14,6 +14,39 @@ import { SkillFileTree } from '~/components/Skills/tree';
 import { useLocalize, useAuthContext } from '~/hooks';
 import { cn } from '~/utils';
 
+function ActionButton({
+  onClick,
+  label,
+  children,
+}: {
+  onClick: (e: React.MouseEvent) => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <TooltipAnchor
+      description={label}
+      side="bottom"
+      render={
+        <span
+          role="button"
+          tabIndex={0}
+          className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
+          onClick={onClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              onClick(e as unknown as React.MouseEvent);
+            }
+          }}
+          aria-label={label}
+        >
+          {children}
+        </span>
+      }
+    />
+  );
+}
+
 function SkillListItem({ skill }: { skill: TSkill }) {
   const localize = useLocalize();
   const navigate = useNavigate();
@@ -35,7 +68,7 @@ function SkillListItem({ skill }: { skill: TSkill }) {
   }, []);
 
   const handleEditMetadata = useCallback(
-    (e: React.MouseEvent | React.KeyboardEvent) => {
+    (e: React.MouseEvent) => {
       e.stopPropagation();
       navigate(`/skills/${skill._id}/edit`);
     },
@@ -83,40 +116,52 @@ function SkillListItem({ skill }: { skill: TSkill }) {
     [deleteNode, skill._id, selectedNodeId],
   );
 
-  const handleNewFile = useCallback(() => {
-    createNode.mutate({
-      skillId: skill._id,
-      data: { type: 'file', name: 'untitled.md', parentId: null },
-    });
-  }, [createNode, skill._id]);
+  const handleNewFile = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      createNode.mutate({
+        skillId: skill._id,
+        data: { type: 'file', name: 'untitled.md', parentId: null },
+      });
+    },
+    [createNode, skill._id],
+  );
 
-  const handleNewFolder = useCallback(() => {
-    createNode.mutate({
-      skillId: skill._id,
-      data: { type: 'folder', name: 'new-folder', parentId: null },
-    });
-  }, [createNode, skill._id]);
+  const handleNewFolder = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      createNode.mutate({
+        skillId: skill._id,
+        data: { type: 'folder', name: 'new-folder', parentId: null },
+      });
+    },
+    [createNode, skill._id],
+  );
 
-  const handleUpload = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.onchange = () => {
-      const files = input.files;
-      if (!files) {
-        return;
-      }
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', 'file');
-        formData.append('name', file.name);
-        createNode.mutate({ skillId: skill._id, data: formData });
-      }
-    };
-    input.click();
-  }, [skill._id, createNode]);
+  const handleUpload = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.multiple = true;
+      input.onchange = () => {
+        const files = input.files;
+        if (!files) {
+          return;
+        }
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('type', 'file');
+          formData.append('name', file.name);
+          createNode.mutate({ skillId: skill._id, data: formData });
+        }
+      };
+      input.click();
+    },
+    [skill._id, createNode],
+  );
 
   return (
     <div
@@ -130,14 +175,14 @@ function SkillListItem({ skill }: { skill: TSkill }) {
     >
       <button
         type="button"
-        className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary"
+        className="flex w-full items-start gap-2 rounded-xl px-3 py-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary"
         onClick={handleToggle}
         aria-expanded={expanded}
         aria-label={skill.name}
       >
         <ChevronRight
           className={cn(
-            'size-3.5 shrink-0 text-text-secondary',
+            'mt-0.5 size-3.5 shrink-0 text-text-secondary',
             'duration-[350ms] ease-[cubic-bezier(0.32,0.72,0,1)] transition-transform',
             expanded && 'rotate-90',
           )}
@@ -185,96 +230,6 @@ function SkillListItem({ skill }: { skill: TSkill }) {
             </p>
           )}
         </div>
-        <div
-          className={cn(
-            'flex shrink-0 items-center gap-0.5',
-            'transition-opacity duration-200 ease-out',
-            'opacity-0 group-hover/skill:opacity-100',
-            expanded && 'opacity-100',
-          )}
-        >
-          <div
-            className={cn(
-              'flex items-center gap-0.5 overflow-hidden',
-              'duration-[350ms] ease-[cubic-bezier(0.32,0.72,0,1)] transition-[max-width,opacity]',
-              expanded ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0',
-            )}
-          >
-            <span
-              role="button"
-              tabIndex={0}
-              className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNewFile();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.stopPropagation();
-                  handleNewFile();
-                }
-              }}
-              aria-label={localize('com_ui_skill_new_file')}
-              title={localize('com_ui_skill_new_file')}
-            >
-              <FilePlus className="size-3.5" />
-            </span>
-            <span
-              role="button"
-              tabIndex={0}
-              className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNewFolder();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.stopPropagation();
-                  handleNewFolder();
-                }
-              }}
-              aria-label={localize('com_ui_skill_new_folder')}
-              title={localize('com_ui_skill_new_folder')}
-            >
-              <FolderPlus className="size-3.5" />
-            </span>
-            <span
-              role="button"
-              tabIndex={0}
-              className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleUpload();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.stopPropagation();
-                  handleUpload();
-                }
-              }}
-              aria-label={localize('com_ui_skill_upload_file')}
-              title={localize('com_ui_skill_upload_file')}
-            >
-              <Upload className="size-3.5" />
-            </span>
-            <div className="mx-0.5 h-3.5 w-px bg-border-light" />
-          </div>
-          <span
-            role="button"
-            tabIndex={0}
-            className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
-            onClick={handleEditMetadata}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleEditMetadata(e);
-              }
-            }}
-            aria-label={localize('com_ui_edit')}
-            title={localize('com_ui_edit')}
-          >
-            <Pencil className="size-3.5" />
-          </span>
-        </div>
       </button>
       <div
         className={cn(
@@ -283,7 +238,22 @@ function SkillListItem({ skill }: { skill: TSkill }) {
         )}
       >
         <div className="overflow-hidden">
-          <div className="px-2 pb-2 pt-1">
+          <div className="flex items-center gap-0.5 border-t border-border-light px-2 py-1">
+            <ActionButton onClick={handleNewFile} label={localize('com_ui_skill_new_file')}>
+              <FilePlus className="size-3.5" />
+            </ActionButton>
+            <ActionButton onClick={handleNewFolder} label={localize('com_ui_skill_new_folder')}>
+              <FolderPlus className="size-3.5" />
+            </ActionButton>
+            <ActionButton onClick={handleUpload} label={localize('com_ui_skill_upload_file')}>
+              <Upload className="size-3.5" />
+            </ActionButton>
+            <div className="flex-1" />
+            <ActionButton onClick={handleEditMetadata} label={localize('com_ui_edit')}>
+              <Pencil className="size-3.5" />
+            </ActionButton>
+          </div>
+          <div className="px-1 pb-2">
             {treeLoading ? (
               <div className="flex items-center justify-center py-6">
                 <Spinner className="size-4 text-text-tertiary" />

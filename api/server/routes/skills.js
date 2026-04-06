@@ -461,7 +461,7 @@ router.get(
       }
 
       if (!node.fileId) {
-        return res.status(200).json({ content: '', mimeType: 'text/plain' });
+        return res.status(200).json({ content: '', mimeType: 'text/plain', name: node.name });
       }
 
       const file = await findFileById(node.fileId);
@@ -472,12 +472,13 @@ router.get(
       if (file.type && file.type.startsWith('text/')) {
         const fs = require('fs').promises;
         const content = await fs.readFile(file.filepath, 'utf-8');
-        return res.status(200).json({ content, mimeType: file.type });
+        return res.status(200).json({ content, mimeType: file.type, name: node.name });
       }
 
       return res.status(200).json({
         content: null,
         mimeType: file.type,
+        name: node.name,
         downloadUrl: `/api/files/download/${file.user}/${file.file_id}`,
       });
     } catch (error) {

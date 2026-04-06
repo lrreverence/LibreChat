@@ -65,20 +65,19 @@ export default function SkillFileEditor({ skillId, nodeId, fileName }: SkillFile
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center bg-surface-primary">
+      <div className="flex h-full items-center justify-center bg-presentation">
         <Spinner className="text-text-tertiary" />
       </div>
     );
   }
 
   const lineCount = displayContent.split('\n').length;
-  const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase();
 
   return (
-    <div className="flex h-full flex-col bg-surface-primary" onKeyDown={handleKeyDown}>
+    <div className="flex h-full flex-col bg-presentation" onKeyDown={handleKeyDown}>
       <div className="flex items-center gap-2 border-b border-border-light px-4 py-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <FileText className="size-4 shrink-0 text-text-tertiary" aria-hidden="true" />
+          <FileText className="size-4 shrink-0 text-text-secondary" aria-hidden="true" />
           <span className="truncate text-sm font-medium text-text-primary">{fileName}</span>
           <Circle
             className={cn(
@@ -88,28 +87,18 @@ export default function SkillFileEditor({ skillId, nodeId, fileName }: SkillFile
             aria-hidden="true"
           />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {ext && (
-            <span className="rounded bg-surface-tertiary px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
-              {ext}
-            </span>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={!isDirty || updateContent.isLoading}
-            onClick={handleSave}
-            aria-label={localize('com_ui_save')}
-            className={cn(
-              'h-7 gap-1.5 px-2.5 text-xs transition-all duration-150',
-              isDirty && 'border-green-600/30 bg-green-600/5 text-green-600 hover:bg-green-600/10',
-            )}
-          >
-            <Save className="size-3" />
-            {localize('com_ui_save')}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant={isDirty ? 'submit' : 'outline'}
+          size="sm"
+          disabled={!isDirty || updateContent.isLoading}
+          onClick={handleSave}
+          aria-label={localize('com_ui_save')}
+          className="h-7 gap-1.5 px-2.5 text-xs"
+        >
+          <Save className="size-3" />
+          {localize('com_ui_save')}
+        </Button>
       </div>
       <div className="relative flex-1 overflow-hidden">
         <textarea

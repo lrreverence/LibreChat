@@ -54,7 +54,7 @@ function FileView({ skillId, nodeId }: { skillId: string; nodeId: string }) {
     );
   }
 
-  const fileName = nodeId;
+  const fileName = (data as { name?: string } | undefined)?.name ?? nodeId;
   const mimeType = data?.mimeType ?? 'text/plain';
 
   if (mimeType.startsWith('text/') || isTextFile(fileName)) {
