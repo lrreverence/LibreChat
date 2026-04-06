@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { Button, TextareaAutosize, Input, Skeleton, useToastContext } from '@librechat/client';
 import { InvocationMode } from 'librechat-data-provider';
 import InvocationModePicker from './InvocationModePicker';
-import SkillContentEditor from './SkillContentEditor';
 import FolderSelector from './FolderSelector';
 import { useGetSkillByIdQuery, useUpdateSkillMutation } from '~/data-provider';
 import { ShareSkill } from '../buttons';
@@ -15,7 +14,6 @@ import { cn } from '~/utils';
 type SkillFormValues = {
   name: string;
   description: string;
-  content: string;
   invocationMode: InvocationMode;
   folderId?: string;
 };
@@ -27,7 +25,6 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
   const { user } = useAuthContext();
   const { showToast } = useToastContext();
   const skillId = skillIdProp || params.skillId || '';
-  const [isContentEditing, setIsContentEditing] = useState(false);
 
   const { data: skill, isLoading } = useGetSkillByIdQuery(skillId, {
     enabled: !!skillId,
@@ -37,7 +34,6 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
     defaultValues: {
       name: '',
       description: '',
-      content: '',
       invocationMode: InvocationMode.auto,
       folderId: undefined,
     },
@@ -56,7 +52,6 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
         {
           name: skill.name,
           description: skill.description,
-          content: skill.content,
           invocationMode: skill.invocationMode,
           folderId: skill.folderId,
         },
@@ -87,7 +82,6 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
       data: {
         name: data.name,
         description: data.description,
-        content: data.content,
         invocationMode: data.invocationMode,
         folderId: data.folderId,
       },
@@ -188,16 +182,6 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
                 />
               </div>
             )}
-          />
-          <SkillContentEditor
-            name="content"
-            isEditing={isContentEditing}
-            setIsEditing={setIsContentEditing}
-            rules={{
-              required: localize('com_ui_skill_content_required'),
-              validate: (v: string) =>
-                v.trim().length > 0 || localize('com_ui_skill_content_required'),
-            }}
           />
           <div className="mt-4 flex justify-end">
             <Button

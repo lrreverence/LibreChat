@@ -4,7 +4,6 @@ export interface ParsedSkillMd {
   name: string;
   description: string;
   invocationMode: InvocationMode | '';
-  content: string;
 }
 
 const FRONTMATTER_DELIMITER = '---';
@@ -32,11 +31,9 @@ export function parseSkillMd(raw: string): ParsedSkillMd {
     name: '',
     description: '',
     invocationMode: '',
-    content: '',
   };
 
   if (!trimmed.startsWith(FRONTMATTER_DELIMITER)) {
-    result.content = trimmed;
     return result;
   }
 
@@ -44,12 +41,10 @@ export function parseSkillMd(raw: string): ParsedSkillMd {
   const closingIndex = afterFirstDelimiter.indexOf(`\n${FRONTMATTER_DELIMITER}`);
 
   if (closingIndex === -1) {
-    result.content = trimmed;
     return result;
   }
 
   const frontmatterBlock = afterFirstDelimiter.slice(0, closingIndex);
-  const body = afterFirstDelimiter.slice(closingIndex + 1 + FRONTMATTER_DELIMITER.length);
 
   const lines = frontmatterBlock.split('\n');
   for (const line of lines) {
@@ -69,6 +64,5 @@ export function parseSkillMd(raw: string): ParsedSkillMd {
     }
   }
 
-  result.content = body.trim();
   return result;
 }

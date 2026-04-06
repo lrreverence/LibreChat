@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { Button, TextareaAutosize, Input, useToastContext } from '@librechat/client';
@@ -6,7 +5,6 @@ import { InvocationMode } from 'librechat-data-provider';
 import type { TCreateSkillRequest } from 'librechat-data-provider';
 import InvocationModePicker from './InvocationModePicker';
 import { useCreateSkillMutation } from '~/data-provider';
-import SkillContentEditor from './SkillContentEditor';
 import FolderSelector from './FolderSelector';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
@@ -14,7 +12,6 @@ import { cn } from '~/utils';
 type CreateSkillFormValues = {
   name: string;
   description: string;
-  content: string;
   invocationMode: InvocationMode;
   folderId?: string;
 };
@@ -22,7 +19,6 @@ type CreateSkillFormValues = {
 const defaultSkill: CreateSkillFormValues = {
   name: '',
   description: '',
-  content: '',
   invocationMode: InvocationMode.auto,
   folderId: undefined,
 };
@@ -36,7 +32,6 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
   const localize = useLocalize();
   const navigate = useNavigate();
   const { showToast } = useToastContext();
-  const [isContentEditing, setIsContentEditing] = useState(true);
   const methods = useForm<CreateSkillFormValues>({
     defaultValues: { ...defaultSkill, ...defaultValues },
   });
@@ -67,7 +62,6 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
     const body: TCreateSkillRequest = {
       name: data.name,
       description: data.description,
-      content: data.content,
       invocationMode: data.invocationMode,
     };
     if (data.folderId) {
@@ -148,16 +142,6 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
                 />
               </div>
             )}
-          />
-          <SkillContentEditor
-            name="content"
-            isEditing={isContentEditing}
-            setIsEditing={setIsContentEditing}
-            rules={{
-              required: localize('com_ui_skill_content_required'),
-              validate: (v: string) =>
-                v.trim().length > 0 || localize('com_ui_skill_content_required'),
-            }}
           />
           <div className="mt-4 flex justify-end">
             <Button
