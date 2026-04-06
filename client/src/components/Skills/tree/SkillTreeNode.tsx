@@ -1,4 +1,4 @@
-import { memo, useCallback, useContext, createContext } from 'react';
+import { memo, useCallback, useContext, createContext, useState } from 'react';
 import {
   FileText,
   FileCode,
@@ -10,6 +10,8 @@ import {
   Pencil,
   Trash,
 } from 'lucide-react';
+import { OGDialog, OGDialogTrigger, OGDialogTemplate } from '@librechat/client';
+import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 import type { NodeRendererProps } from 'react-arborist';
 
@@ -60,10 +62,12 @@ function getFileIcon(name: string) {
 }
 
 function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeData>) {
+  const localize = useLocalize();
   const isFolder = node.data.nodeType === 'folder';
   const isOpen = node.isOpen;
   const isSelected = node.isSelected;
   const { onDeleteNode } = useContext(TreeActionsContext);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleClick = useCallback(() => {
     if (isFolder) {
@@ -81,13 +85,15 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
     [node],
   );
 
-  const handleDelete = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onDeleteNode(node.id);
-    },
-    [node.id, onDeleteNode],
-  );
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteOpen(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    onDeleteNode(node.id);
+    setDeleteOpen(false);
+  }, [node.id, onDeleteNode]);
 
   const fileIcon = !isFolder ? getFileIcon(node.data.name) : null;
 
@@ -125,7 +131,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           aria-hidden="true"
         />
       ) : (
-        <span className="w-3" />
+        <span className="w-3.5" />
       )}
       {isFolder && (
         <span className="relative size-4 shrink-0">
@@ -155,11 +161,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           type="text"
           defaultValue={node.data.name}
           ref={(el) => el?.focus()}
-          className={cn(
-            'min-w-0 flex-1 rounded border border-border-medium bg-surface-primary',
-            'px-1.5 py-0.5 text-[13px] text-text-primary outline-none',
-            'transition-shadow duration-150 focus:ring-1 focus:ring-ring-primary',
-          )}
+          className="min-w-0 flex-1 rounded-md border-none bg-transparent py-0 pl-0 text-sm text-text-primary outline-none ring-1 ring-border-medium focus:ring-ring-primary"
           onBlur={() => node.reset()}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -191,15 +193,37 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
             >
               <Pencil className="size-3.5" />
             </button>
-            <button
-              type="button"
-              className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
-              onClick={handleDelete}
-              aria-label={`Delete ${node.data.name}`}
-              tabIndex={-1}
-            >
-              <Trash className="size-3.5" />
-            </button>
+            <OGDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <OGDialogTrigger asChild>
+                <button
+                  type="button"
+                  className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
+                  onClick={handleDeleteClick}
+                  aria-label={`Delete ${node.data.name}`}
+                  tabIndex={-1}
+                >
+                  <Trash className="size-3.5" />
+                </button>
+              </OGDialogTrigger>
+              <OGDialogTemplate
+                showCloseButton={false}
+                title={localize('com_ui_delete')}
+                className="max-w-[450px]"
+                main={
+                  <p className="text-left text-sm text-text-primary">
+                    {isFolder
+                      ? `Delete folder "${node.data.name}" and all its contents?`
+                      : `Delete "${node.data.name}"?`}
+                  </p>
+                }
+                selection={{
+                  selectHandler: handleDeleteConfirm,
+                  selectClasses:
+                    'bg-surface-destructive hover:bg-surface-destructive-hover transition-colors duration-200 text-white',
+                  selectText: localize('com_ui_delete'),
+                }}
+              />
+            </OGDialog>
           </div>
         </>
       )}
