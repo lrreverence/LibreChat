@@ -22,6 +22,14 @@ const {
   createSkillFolder,
   updateSkillFolder,
   deleteSkillFolder,
+  getSkillTree,
+  getSkillNode,
+  createSkillNode,
+  updateSkillNode,
+  deleteSkillNode,
+  findFileById,
+  updateFile,
+  createFile,
 } = require('~/models');
 const {
   findPubliclyAccessibleResources,
@@ -44,7 +52,8 @@ const checkSkillCreate = generateCheckAccess({
 });
 
 /** Allowed fields for skill create/update — prevents mass assignment of author, tenantId, etc. */
-const ALLOWED_SKILL_FIELDS = ['name', 'description', 'content', 'folderId', 'invocationMode'];
+const ALLOWED_SKILL_FIELDS = ['name', 'description', 'folderId', 'invocationMode'];
+const ALLOWED_NODE_FIELDS = ['name', 'parentId', 'order'];
 
 function pickAllowed(body, fields) {
   const result = {};
@@ -66,21 +75,16 @@ router.use(checkSkillAccess);
 /**
  * Creates a new skill.
  * @route POST /api/skills
- * @param {object} req.body - Skill creation payload (must include name and content).
+ * @param {object} req.body - Skill creation payload (must include name).
  * @returns {ISkillDocument} 201 - Created skill document
  */
 router.post('/', checkSkillCreate, async (req, res) => {
   try {
-    const { name, content } = req.body;
+    const { name } = req.body;
     if (!name || typeof name !== 'string' || !name.trim()) {
       return res
         .status(400)
         .json({ error: 'Skill name is required and must be a non-empty string' });
-    }
-    if (!content || typeof content !== 'string' || !content.trim()) {
-      return res
-        .status(400)
-        .json({ error: 'Skill content is required and must be a non-empty string' });
     }
 
     const allowed = pickAllowed(req.body, ALLOWED_SKILL_FIELDS);
@@ -300,6 +304,210 @@ router.delete('/folders/:folderId', async (req, res) => {
   }
 });
 
+/* ────────────────── Skill-tree (node) sub-routes ────────────────── */
+
+/** Returns all nodes for a skill's file tree. */
+router.get(
+  '/:skillId/tree',
+  canAccessSkillResource({ requiredPermission: PermissionBits.VIEW }),
+  async (req, res) => {
+    try {
+      const nodes = await getSkillTree({ skillId: req.params.skillId });
+      res.status(200).json({ nodes });
+    } catch (error) {
+      logger.error('[GET /skills/:skillId/tree]', error);
+      res.status(500).json({ message: 'Error fetching skill tree' });
+    }
+  },
+);
+
+/** Creates a file or folder node inside a skill tree. */
+router.post(
+  '/:skillId/tree/node',
+  checkSkillCreate,
+  canAccessSkillResource({ requiredPermission: PermissionBits.EDIT }),
+  async (req, res) => {
+    try {
+      const { skillId } = req.params;
+      const { type, name, parentId, order } = req.body;
+
+      if (!type || !name) {
+        return res.status(400).json({ message: 'type and name are required' });
+      }
+
+      if (!['file', 'folder'].includes(type)) {
+        return res.status(400).json({ message: 'type must be file or folder' });
+      }
+
+      const nodeData = {
+        skillId: new ObjectId(skillId),
+        parentId: parentId ? new ObjectId(parentId) : null,
+        type,
+        name,
+        order: order ?? 0,
+        author: new ObjectId(req.user.id),
+      };
+
+      const node = await createSkillNode(nodeData);
+      res.status(201).json(node);
+    } catch (error) {
+      logger.error('[POST /skills/:skillId/tree/node]', error);
+      res.status(500).json({ message: 'Error creating skill node' });
+    }
+  },
+);
+
+/** Renames, moves, or reorders a skill tree node. */
+router.patch(
+  '/:skillId/tree/node/:nodeId',
+  checkSkillCreate,
+  canAccessSkillResource({ requiredPermission: PermissionBits.EDIT }),
+  async (req, res) => {
+    try {
+      const allowed = {};
+      for (const field of ALLOWED_NODE_FIELDS) {
+        if (req.body[field] !== undefined) {
+          allowed[field] =
+            field === 'parentId' && req.body[field]
+              ? new ObjectId(req.body[field])
+              : req.body[field];
+        }
+      }
+
+      if (req.body.parentId === null) {
+        allowed.parentId = null;
+      }
+
+      const node = await updateSkillNode({ _id: req.params.nodeId, data: allowed });
+      if (!node) {
+        return res.status(404).json({ message: 'Node not found' });
+      }
+      res.status(200).json(node);
+    } catch (error) {
+      logger.error('[PATCH /skills/:skillId/tree/node/:nodeId]', error);
+      res.status(500).json({ message: 'Error updating skill node' });
+    }
+  },
+);
+
+/** Deletes a skill tree node (with cascade). */
+router.delete(
+  '/:skillId/tree/node/:nodeId',
+  checkSkillCreate,
+  canAccessSkillResource({ requiredPermission: PermissionBits.DELETE }),
+  async (req, res) => {
+    try {
+      const result = await deleteSkillNode({ _id: req.params.nodeId });
+      res.status(200).json(result);
+    } catch (error) {
+      logger.error('[DELETE /skills/:skillId/tree/node/:nodeId]', error);
+      res.status(500).json({ message: 'Error deleting skill node' });
+    }
+  },
+);
+
+/** Gets the content of a file node (text returned inline; binary returns download URL). */
+router.get(
+  '/:skillId/tree/node/:nodeId/content',
+  canAccessSkillResource({ requiredPermission: PermissionBits.VIEW }),
+  async (req, res) => {
+    try {
+      const node = await getSkillNode({ _id: req.params.nodeId });
+      if (!node || node.type !== 'file') {
+        return res.status(404).json({ message: 'File node not found' });
+      }
+
+      if (!node.fileId) {
+        return res.status(200).json({ content: '', mimeType: 'text/plain' });
+      }
+
+      const file = await findFileById(node.fileId);
+      if (!file) {
+        return res.status(404).json({ message: 'Associated file not found' });
+      }
+
+      if (file.type && file.type.startsWith('text/')) {
+        const fs = require('fs').promises;
+        const content = await fs.readFile(file.filepath, 'utf-8');
+        return res.status(200).json({ content, mimeType: file.type });
+      }
+
+      return res.status(200).json({
+        content: null,
+        mimeType: file.type,
+        downloadUrl: `/api/files/download/${file.user}/${file.file_id}`,
+      });
+    } catch (error) {
+      logger.error('[GET /skills/:skillId/tree/node/:nodeId/content]', error);
+      res.status(500).json({ message: 'Error fetching node content' });
+    }
+  },
+);
+
+/** Updates text file content for a node (creates the backing file on first write). */
+router.put(
+  '/:skillId/tree/node/:nodeId/content',
+  checkSkillCreate,
+  canAccessSkillResource({ requiredPermission: PermissionBits.EDIT }),
+  async (req, res) => {
+    try {
+      const node = await getSkillNode({ _id: req.params.nodeId });
+      if (!node || node.type !== 'file') {
+        return res.status(404).json({ message: 'File node not found' });
+      }
+
+      const { content } = req.body;
+      if (typeof content !== 'string') {
+        return res.status(400).json({ message: 'content must be a string' });
+      }
+
+      if (node.fileId) {
+        const file = await findFileById(node.fileId);
+        if (file && file.filepath) {
+          const fs = require('fs').promises;
+          await fs.writeFile(file.filepath, content, 'utf-8');
+          await updateFile({ file_id: node.fileId, bytes: Buffer.byteLength(content) });
+        }
+      } else {
+        const crypto = require('crypto');
+        const fs = require('fs').promises;
+        const path = require('path');
+        const paths = require('~/config/paths');
+
+        const fileId = crypto.randomUUID();
+        const dir = path.join(paths.uploads, req.user.id, 'skills', req.params.skillId);
+        await fs.mkdir(dir, { recursive: true });
+        const filepath = path.join(dir, `${fileId}-${node.name}`);
+        await fs.writeFile(filepath, content, 'utf-8');
+
+        await createFile(
+          {
+            user: req.user.id,
+            file_id: fileId,
+            filename: node.name,
+            filepath,
+            type: 'text/plain',
+            bytes: Buffer.byteLength(content),
+            context: 'skill_file',
+            source: 'local',
+          },
+          true,
+        );
+
+        await updateSkillNode({ _id: node._id.toString(), data: { fileId } });
+      }
+
+      const updated = await getSkillNode({ _id: req.params.nodeId });
+      res.status(200).json(updated);
+    } catch (error) {
+      logger.error('[PUT /skills/:skillId/tree/node/:nodeId/content]', error);
+      res.status(500).json({ message: 'Error updating node content' });
+    }
+  },
+);
+
+/* ────────────────── Skill CRUD by ID ────────────────── */
+
 /**
  * Gets a skill by ID.
  * @route GET /api/skills/:skillId
@@ -327,7 +535,7 @@ router.get(
  * Updates a skill by ID.
  * @route PATCH /api/skills/:skillId
  * @param {string} req.params.skillId - Skill ObjectId.
- * @param {object} req.body - Fields to update (name, description, content, folderId, invocationMode).
+ * @param {object} req.body - Fields to update (name, description, folderId, invocationMode).
  * @returns {ISkillDocument} 200 - Updated skill document
  */
 router.patch(
