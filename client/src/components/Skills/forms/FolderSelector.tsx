@@ -1,10 +1,20 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import * as Ariakit from '@ariakit/react';
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, FolderPlus } from 'lucide-react';
 import { Controller, useFormContext } from 'react-hook-form';
-import { DropdownPopup } from '@librechat/client';
+import {
+  OGDialog,
+  OGDialogTemplate,
+  OGDialogTrigger,
+  DropdownPopup,
+  Button,
+  Label,
+  Input,
+  Spinner,
+  useToastContext,
+} from '@librechat/client';
 import type { MenuItemProps } from '@librechat/client';
-import { useListSkillFoldersQuery } from '~/data-provider';
+import { useListSkillFoldersQuery, useCreateSkillFolderMutation } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -15,7 +25,10 @@ interface FolderSelectorProps {
 const FolderSelector: React.FC<FolderSelectorProps> = ({ className = '' }) => {
   const localize = useLocalize();
   const { control, watch, setValue } = useFormContext();
+  const { showToast } = useToastContext();
   const [isOpen, setIsOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   const { data: folders = [] } = useListSkillFoldersQuery({ enabled: true });
 
@@ -25,6 +38,26 @@ const FolderSelector: React.FC<FolderSelectorProps> = ({ className = '' }) => {
     () => folders.find((f) => f._id === watchedFolderId),
     [folders, watchedFolderId],
   );
+
+  const createFolderMutation = useCreateSkillFolderMutation({
+    onSuccess: (newFolder) => {
+      setValue('folderId', newFolder._id, { shouldDirty: true });
+      setDialogOpen(false);
+      setNewFolderName('');
+      showToast({ message: localize('com_ui_folder_created'), status: 'success' });
+    },
+    onError: () => {
+      showToast({ message: localize('com_ui_folder_create_error'), status: 'error' });
+    },
+  });
+
+  const handleCreateFolder = useCallback(() => {
+    const trimmed = newFolderName.trim();
+    if (!trimmed) {
+      return;
+    }
+    createFolderMutation.mutate({ name: trimmed });
+  }, [newFolderName, createFolderMutation]);
 
   const menuItems: MenuItemProps[] = useMemo(() => {
     const items: MenuItemProps[] = [
@@ -49,6 +82,16 @@ const FolderSelector: React.FC<FolderSelectorProps> = ({ className = '' }) => {
       });
     }
 
+    items.push({
+      id: '__create__',
+      label: localize('com_ui_new_folder'),
+      icon: <FolderPlus className="size-4" aria-hidden="true" />,
+      onClick: () => {
+        setIsOpen(false);
+        setDialogOpen(true);
+      },
+    });
+
     return items;
   }, [folders, localize, setValue]);
 
@@ -71,21 +114,71 @@ const FolderSelector: React.FC<FolderSelectorProps> = ({ className = '' }) => {
   );
 
   return (
-    <Controller
-      name="folderId"
-      control={control}
-      render={() => (
-        <DropdownPopup
-          trigger={trigger}
-          items={menuItems}
-          isOpen={isOpen}
-          setIsOpen={setIsOpen}
-          menuId="folder-selector-menu"
-          className="mt-2"
-          portal={true}
+    <>
+      <Controller
+        name="folderId"
+        control={control}
+        render={() => (
+          <DropdownPopup
+            trigger={trigger}
+            items={menuItems}
+            isOpen={isOpen}
+            setIsOpen={setIsOpen}
+            menuId="folder-selector-menu"
+            className="mt-2"
+            portal={true}
+          />
+        )}
+      />
+      <OGDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <OGDialogTrigger asChild>
+          <span />
+        </OGDialogTrigger>
+        <OGDialogTemplate
+          title={localize('com_ui_new_folder')}
+          showCloseButton={false}
+          className="w-11/12 md:max-w-lg"
+          main={
+            <div className="space-y-2">
+              <Label htmlFor="new-folder-name" className="text-sm font-medium text-text-primary">
+                {localize('com_ui_name')}
+              </Label>
+              <Input
+                id="new-folder-name"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateFolder();
+                  }
+                }}
+                placeholder={localize('com_ui_new_folder')}
+                className="w-full"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
+                autoFocus
+              />
+            </div>
+          }
+          buttons={
+            <Button
+              type="button"
+              variant="submit"
+              onClick={handleCreateFolder}
+              disabled={createFolderMutation.isLoading || !newFolderName.trim()}
+              className="text-white"
+              aria-label={localize('com_ui_create')}
+            >
+              {createFolderMutation.isLoading ? (
+                <Spinner className="size-4" />
+              ) : (
+                localize('com_ui_create')
+              )}
+            </Button>
+          }
         />
-      )}
-    />
+      </OGDialog>
+    </>
   );
 };
 
