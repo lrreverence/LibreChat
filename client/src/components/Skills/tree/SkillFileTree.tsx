@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { Tree } from 'react-arborist';
 import SkillTreeNode, { TreeActionsContext } from './SkillTreeNode';
 import type { NodeApi } from 'react-arborist';
@@ -98,25 +98,42 @@ export default function SkillFileTree({
     [onMoveNode],
   );
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(400);
+
+  useEffect(() => {
+    if (!containerRef.current) {
+      return;
+    }
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   const rowHeight = 34;
-  const autoHeight = treeData.length * rowHeight + 8;
-  const resolvedHeight = height ?? Math.min(autoHeight, 800);
+  const resolvedHeight = height ?? containerHeight;
 
   return (
     <TreeActionsContext.Provider value={treeActions}>
-      <Tree<SkillTreeData>
-        data={treeData}
-        selection={selectedNodeId ?? undefined}
-        onSelect={handleSelect}
-        onRename={handleRename}
-        onMove={handleMove}
-        rowHeight={rowHeight}
-        indent={16}
-        height={resolvedHeight}
-        openByDefault={false}
-      >
-        {SkillTreeNode}
-      </Tree>
+      <div ref={containerRef} className="h-full">
+        <Tree<SkillTreeData>
+          data={treeData}
+          selection={selectedNodeId ?? undefined}
+          onSelect={handleSelect}
+          onRename={handleRename}
+          onMove={handleMove}
+          rowHeight={rowHeight}
+          indent={16}
+          height={resolvedHeight}
+          openByDefault={false}
+        >
+          {SkillTreeNode}
+        </Tree>
+      </div>
     </TreeActionsContext.Provider>
   );
 }
