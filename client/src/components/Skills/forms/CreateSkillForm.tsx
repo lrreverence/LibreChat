@@ -4,9 +4,10 @@ import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { Button, TextareaAutosize, Input, useToastContext } from '@librechat/client';
 import { InvocationMode } from 'librechat-data-provider';
 import type { TCreateSkillRequest } from 'librechat-data-provider';
+import InvocationModePicker from './InvocationModePicker';
+import { useCreateSkillMutation } from '~/data-provider';
 import SkillContentEditor from './SkillContentEditor';
 import FolderSelector from './FolderSelector';
-import { useCreateSkillMutation } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -36,7 +37,6 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
   const navigate = useNavigate();
   const { showToast } = useToastContext();
   const [isContentEditing, setIsContentEditing] = useState(true);
-
   const methods = useForm<CreateSkillFormValues>({
     defaultValues: { ...defaultSkill, ...defaultValues },
   });
@@ -116,32 +116,15 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
               )}
             />
             <div className="flex items-center gap-2">
-              <Controller
-                name="invocationMode"
-                control={control}
-                render={({ field }) => (
-                  <select
-                    {...field}
-                    className="h-9 rounded-xl border border-border-medium bg-transparent px-3 text-sm text-text-primary"
-                    aria-label={localize('com_ui_invocation_mode')}
-                  >
-                    <option value={InvocationMode.auto}>
-                      {localize('com_ui_invocation_auto')}
-                    </option>
-                    <option value={InvocationMode.manual}>
-                      {localize('com_ui_invocation_manual')}
-                    </option>
-                    <option value={InvocationMode.both}>
-                      {localize('com_ui_invocation_both')}
-                    </option>
-                  </select>
-                )}
-              />
               <FolderSelector />
             </div>
           </div>
         </div>
         <div className="flex w-full flex-col gap-4 md:mt-[1.075rem]">
+          <InvocationModePicker
+            value={methods.watch('invocationMode')}
+            onChange={(mode) => methods.setValue('invocationMode', mode, { shouldDirty: true })}
+          />
           <Controller
             name="description"
             control={control}
@@ -156,7 +139,7 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
                 <TextareaAutosize
                   {...field}
                   id="skill-description"
-                  className="w-full resize-none rounded-xl border border-border-medium bg-transparent p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary"
+                  className="w-full resize-none rounded-xl border border-border-medium bg-transparent p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none"
                   minRows={2}
                   maxRows={6}
                   tabIndex={0}
@@ -170,6 +153,11 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
             name="content"
             isEditing={isContentEditing}
             setIsEditing={setIsContentEditing}
+            rules={{
+              required: localize('com_ui_skill_content_required'),
+              validate: (v: string) =>
+                v.trim().length > 0 || localize('com_ui_skill_content_required'),
+            }}
           />
           <div className="mt-4 flex justify-end">
             <Button
