@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { FilePlus, FolderPlus, Pencil, Upload } from 'lucide-react';
 import { Spinner, TooltipAnchor } from '@librechat/client';
 import { Navigate, useParams, useLocation, useNavigate } from 'react-router-dom';
@@ -103,6 +103,8 @@ function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
   const localize = useLocalize();
   const navigate = useNavigate();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(nodeId ?? null);
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const isResizing = useRef(false);
 
   const { data: treeData, isLoading: treeLoading } = useGetSkillTreeQuery(skillId);
   const createNode = useCreateSkillNodeMutation(skillId);
@@ -177,9 +179,43 @@ function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
     navigate(`/skills/${skillId}/edit`);
   }, [navigate, skillId]);
 
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isResizing.current = true;
+      const startX = e.clientX;
+      const startWidth = sidebarWidth;
+
+      const onMouseMove = (ev: MouseEvent) => {
+        if (!isResizing.current) {
+          return;
+        }
+        const newWidth = Math.max(200, Math.min(600, startWidth + ev.clientX - startX));
+        setSidebarWidth(newWidth);
+      };
+
+      const onMouseUp = () => {
+        isResizing.current = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    },
+    [sidebarWidth],
+  );
+
   return (
     <div className="flex h-full w-full bg-presentation">
-      <div className="flex h-full w-72 shrink-0 flex-col border-r border-border-light">
+      <div
+        className="flex h-full shrink-0 flex-col border-r border-border-light"
+        style={{ width: `${sidebarWidth}px` }}
+      >
         <div className="flex items-center gap-1 border-b border-border-light px-2.5 py-2">
           <ToolbarButton onClick={handleNewFile} label={localize('com_ui_skill_new_file')}>
             <FilePlus className="size-4" />
@@ -213,6 +249,16 @@ function TreeView({ skillId, nodeId }: { skillId: string; nodeId?: string }) {
             </div>
           )}
         </div>
+      </div>
+      <div
+        className="group/resize flex w-1 shrink-0 cursor-col-resize items-center justify-center hover:bg-surface-hover active:bg-surface-active"
+        onMouseDown={handleResizeStart}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize file tree"
+        tabIndex={0}
+      >
+        <div className="h-8 w-0.5 rounded-full bg-border-light transition-colors group-hover/resize:bg-border-medium group-active/resize:bg-border-heavy" />
       </div>
       <div className="flex-1 overflow-hidden">
         {nodeId ? (
