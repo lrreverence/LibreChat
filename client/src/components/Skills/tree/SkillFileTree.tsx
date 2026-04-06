@@ -1,0 +1,113 @@
+import { useMemo, useCallback } from 'react';
+import { Tree } from 'react-arborist';
+import SkillTreeNode from './SkillTreeNode';
+import type { NodeApi } from 'react-arborist';
+import type { TSkillNode } from 'librechat-data-provider';
+import type { SkillTreeData } from './SkillTreeNode';
+
+interface SkillFileTreeProps {
+  nodes: TSkillNode[];
+  selectedNodeId: string | null;
+  onSelectNode: (nodeId: string, nodeType: 'file' | 'folder') => void;
+  onRenameNode: (nodeId: string, newName: string) => void;
+  onMoveNode: (nodeId: string, newParentId: string | null, index: number) => void;
+  height: number;
+}
+
+function buildTreeData(nodes: TSkillNode[]): SkillTreeData[] {
+  const nodeMap = new Map<string, SkillTreeData>();
+  const roots: SkillTreeData[] = [];
+
+  for (const node of nodes) {
+    nodeMap.set(node._id, {
+      id: node._id,
+      name: node.name,
+      nodeType: node.type,
+      fileId: node.fileId,
+      children: node.type === 'folder' ? [] : undefined,
+    });
+  }
+
+  for (const node of nodes) {
+    const treeNode = nodeMap.get(node._id);
+    if (!treeNode) {
+      continue;
+    }
+
+    if (node.parentId) {
+      const parent = nodeMap.get(node.parentId);
+      if (parent?.children) {
+        parent.children.push(treeNode);
+      } else {
+        roots.push(treeNode);
+      }
+    } else {
+      roots.push(treeNode);
+    }
+  }
+
+  return roots;
+}
+
+export default function SkillFileTree({
+  nodes,
+  selectedNodeId,
+  onSelectNode,
+  onRenameNode,
+  onMoveNode,
+  height,
+}: SkillFileTreeProps) {
+  const treeData = useMemo(() => buildTreeData(nodes), [nodes]);
+
+  const handleSelect = useCallback(
+    (selectedNodes: NodeApi<SkillTreeData>[]) => {
+      const selected = selectedNodes[0];
+      if (selected) {
+        onSelectNode(selected.id, selected.data.nodeType);
+      }
+    },
+    [onSelectNode],
+  );
+
+  const handleRename = useCallback(
+    ({ id, name }: { id: string; name: string; node: NodeApi<SkillTreeData> }) => {
+      onRenameNode(id, name);
+    },
+    [onRenameNode],
+  );
+
+  const handleMove = useCallback(
+    ({
+      dragIds,
+      parentId,
+      index,
+    }: {
+      dragIds: string[];
+      dragNodes: NodeApi<SkillTreeData>[];
+      parentId: string | null;
+      parentNode: NodeApi<SkillTreeData> | null;
+      index: number;
+    }) => {
+      for (const id of dragIds) {
+        onMoveNode(id, parentId, index);
+      }
+    },
+    [onMoveNode],
+  );
+
+  return (
+    <Tree<SkillTreeData>
+      data={treeData}
+      selection={selectedNodeId ?? undefined}
+      onSelect={handleSelect}
+      onRename={handleRename}
+      onMove={handleMove}
+      rowHeight={32}
+      indent={16}
+      height={height}
+      openByDefault={false}
+    >
+      {SkillTreeNode}
+    </Tree>
+  );
+}
