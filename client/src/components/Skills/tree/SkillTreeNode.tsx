@@ -121,7 +121,8 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       {isFolder ? (
         <ChevronRight
           className={cn(
-            'size-3 shrink-0 text-text-secondary transition-transform duration-200 ease-out',
+            'size-3 shrink-0 text-text-secondary',
+            'ease-[cubic-bezier(0.25,0.1,0.25,1)] transition-transform duration-300',
             isOpen && 'rotate-90',
           )}
           aria-hidden="true"
@@ -129,11 +130,25 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       ) : (
         <span className="w-3" />
       )}
-      {isFolder && isOpen && (
-        <FolderOpen className="size-[15px] shrink-0 text-text-secondary" aria-hidden="true" />
-      )}
-      {isFolder && !isOpen && (
-        <Folder className="size-[15px] shrink-0 text-text-secondary" aria-hidden="true" />
+      {isFolder && (
+        <span className="relative size-[15px] shrink-0">
+          <FolderOpen
+            className={cn(
+              'absolute inset-0 size-[15px] text-text-secondary',
+              'transition-opacity duration-200 ease-out',
+              isOpen ? 'opacity-100' : 'opacity-0',
+            )}
+            aria-hidden="true"
+          />
+          <Folder
+            className={cn(
+              'absolute inset-0 size-[15px] text-text-secondary',
+              'transition-opacity duration-200 ease-out',
+              isOpen ? 'opacity-0' : 'opacity-100',
+            )}
+            aria-hidden="true"
+          />
+        </span>
       )}
       {fileIcon && (
         <fileIcon.Icon
@@ -169,8 +184,8 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           <div
             className={cn(
               'ml-auto flex shrink-0 items-center gap-px',
-              'translate-x-1 opacity-0 transition-[opacity,transform] duration-150 ease-out',
-              'group-hover:translate-x-0 group-hover:opacity-100',
+              'opacity-0 transition-opacity duration-200 ease-out',
+              'group-hover:opacity-100',
             )}
           >
             <button

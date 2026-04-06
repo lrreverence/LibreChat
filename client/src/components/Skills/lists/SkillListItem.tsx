@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useCallback, useEffect } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { ChevronRight, EarthIcon, FilePlus, FolderPlus, Pencil, Upload, User } from 'lucide-react';
 import { Spinner, TooltipAnchor } from '@librechat/client';
 import { useNavigate } from 'react-router-dom';
@@ -20,9 +20,6 @@ function SkillListItem({ skill }: { skill: TSkill }) {
   const { user } = useAuthContext();
   const [expanded, setExpanded] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [contentHeight, setContentHeight] = useState(0);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isShared = skill.author !== user?.id && Boolean(skill.authorName);
   const isPublic = skill.isPublic === true;
@@ -33,25 +30,12 @@ function SkillListItem({ skill }: { skill: TSkill }) {
   const updateNode = useUpdateSkillNodeMutation(skill._id);
   const deleteNode = useDeleteSkillNodeMutation(skill._id);
 
-  useEffect(() => {
-    if (!expanded || !contentRef.current) {
-      return;
-    }
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContentHeight(entry.contentRect.height);
-      }
-    });
-    observer.observe(contentRef.current);
-    return () => observer.disconnect();
-  }, [expanded]);
-
   const handleToggle = useCallback(() => {
     setExpanded((prev) => !prev);
   }, []);
 
   const handleEditMetadata = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent | React.KeyboardEvent) => {
       e.stopPropagation();
       navigate(`/skills/${skill._id}/edit`);
     },
@@ -114,12 +98,11 @@ function SkillListItem({ skill }: { skill: TSkill }) {
   }, [createNode, skill._id]);
 
   const handleUpload = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.onchange = () => {
+      const files = input.files;
       if (!files) {
         return;
       }
@@ -131,10 +114,9 @@ function SkillListItem({ skill }: { skill: TSkill }) {
         formData.append('name', file.name);
         createNode.mutate({ skillId: skill._id, data: formData });
       }
-      e.target.value = '';
-    },
-    [skill._id, createNode],
-  );
+    };
+    input.click();
+  }, [skill._id, createNode]);
 
   const nodeCount = treeData?.nodes.length ?? 0;
   const treeHeight = Math.min(nodeCount * 32 + 32, 320);
@@ -142,7 +124,8 @@ function SkillListItem({ skill }: { skill: TSkill }) {
   return (
     <div
       className={cn(
-        'group/skill duration-250 mb-1 overflow-hidden rounded-xl border transition-all ease-out',
+        'group/skill mb-1 rounded-xl border',
+        'ease-[cubic-bezier(0.25,0.1,0.25,1)] transition-[border-color,box-shadow] duration-300',
         expanded
           ? 'border-border-medium shadow-sm'
           : 'border-border-light hover:border-border-medium',
@@ -150,17 +133,15 @@ function SkillListItem({ skill }: { skill: TSkill }) {
     >
       <button
         type="button"
-        className={cn(
-          'flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors duration-150',
-          'hover:bg-surface-secondary/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary',
-        )}
+        className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary"
         onClick={handleToggle}
         aria-expanded={expanded}
         aria-label={skill.name}
       >
         <ChevronRight
           className={cn(
-            'duration-250 size-3.5 shrink-0 text-text-secondary transition-transform ease-out',
+            'size-3.5 shrink-0 text-text-secondary',
+            'ease-[cubic-bezier(0.25,0.1,0.25,1)] transition-transform duration-300',
             expanded && 'rotate-90',
           )}
           aria-hidden="true"
@@ -201,93 +182,99 @@ function SkillListItem({ skill }: { skill: TSkill }) {
               />
             )}
           </div>
-          <p
+          <div
             className={cn(
-              'line-clamp-1 text-xs leading-relaxed text-text-secondary',
-              'duration-250 transition-[max-height,opacity,margin] ease-out',
-              expanded ? 'mt-0 max-h-0 opacity-0' : 'mt-0.5 max-h-6 opacity-100',
+              'ease-[cubic-bezier(0.25,0.1,0.25,1)] grid transition-[grid-template-rows,opacity] duration-300',
+              expanded ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
             )}
           >
-            {skill.description}
-          </p>
+            <p className="overflow-hidden text-xs leading-relaxed text-text-secondary">
+              {skill.description}
+            </p>
+          </div>
         </div>
         <div
           className={cn(
-            'flex shrink-0 items-center gap-0.5 transition-opacity duration-150',
+            'flex shrink-0 items-center gap-0.5',
+            'transition-opacity duration-200 ease-out',
             'opacity-0 group-hover/skill:opacity-100',
             expanded && 'opacity-100',
           )}
         >
-          {expanded && (
-            <>
-              <span
-                role="button"
-                tabIndex={0}
-                className="rounded bg-transparent p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
-                onClick={(e) => {
+          <div
+            className={cn(
+              'flex items-center gap-0.5 overflow-hidden',
+              'ease-[cubic-bezier(0.25,0.1,0.25,1)] transition-[max-width,opacity] duration-300',
+              expanded ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0',
+            )}
+          >
+            <span
+              role="button"
+              tabIndex={0}
+              className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNewFile();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
                   e.stopPropagation();
                   handleNewFile();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.stopPropagation();
-                    handleNewFile();
-                  }
-                }}
-                aria-label={localize('com_ui_skill_new_file')}
-                title={localize('com_ui_skill_new_file')}
-              >
-                <FilePlus className="size-3.5" />
-              </span>
-              <span
-                role="button"
-                tabIndex={0}
-                className="rounded bg-transparent p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
-                onClick={(e) => {
+                }
+              }}
+              aria-label={localize('com_ui_skill_new_file')}
+              title={localize('com_ui_skill_new_file')}
+            >
+              <FilePlus className="size-3.5" />
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNewFolder();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
                   e.stopPropagation();
                   handleNewFolder();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.stopPropagation();
-                    handleNewFolder();
-                  }
-                }}
-                aria-label={localize('com_ui_skill_new_folder')}
-                title={localize('com_ui_skill_new_folder')}
-              >
-                <FolderPlus className="size-3.5" />
-              </span>
-              <span
-                role="button"
-                tabIndex={0}
-                className="rounded bg-transparent p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
-                onClick={(e) => {
+                }
+              }}
+              aria-label={localize('com_ui_skill_new_folder')}
+              title={localize('com_ui_skill_new_folder')}
+            >
+              <FolderPlus className="size-3.5" />
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleUpload();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
                   e.stopPropagation();
                   handleUpload();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.stopPropagation();
-                    handleUpload();
-                  }
-                }}
-                aria-label={localize('com_ui_skill_upload_file')}
-                title={localize('com_ui_skill_upload_file')}
-              >
-                <Upload className="size-3.5" />
-              </span>
-              <div className="mx-0.5 h-3.5 w-px bg-border-light" />
-            </>
-          )}
+                }
+              }}
+              aria-label={localize('com_ui_skill_upload_file')}
+              title={localize('com_ui_skill_upload_file')}
+            >
+              <Upload className="size-3.5" />
+            </span>
+            <div className="mx-0.5 h-3.5 w-px bg-border-light" />
+          </div>
           <span
             role="button"
             tabIndex={0}
-            className="rounded bg-transparent p-1 text-text-tertiary transition-colors duration-100 hover:bg-surface-hover hover:text-text-primary"
+            className="rounded bg-transparent p-1 text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-primary"
             onClick={handleEditMetadata}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                handleEditMetadata(e as unknown as React.MouseEvent);
+                handleEditMetadata(e);
               }
             }}
             aria-label={localize('com_ui_edit')}
@@ -298,14 +285,12 @@ function SkillListItem({ skill }: { skill: TSkill }) {
         </div>
       </button>
       <div
-        className="transition-[height,opacity] duration-300 ease-out"
-        style={{
-          height: expanded ? `${contentHeight}px` : '0px',
-          opacity: expanded ? 1 : 0,
-          overflow: 'hidden',
-        }}
+        className={cn(
+          'ease-[cubic-bezier(0.25,0.1,0.25,1)] grid transition-[grid-template-rows] duration-300',
+          expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        )}
       >
-        <div ref={contentRef}>
+        <div className="overflow-hidden">
           <div className="px-2 pb-2 pt-1">
             {treeLoading ? (
               <div className="flex items-center justify-center py-6">
@@ -325,15 +310,6 @@ function SkillListItem({ skill }: { skill: TSkill }) {
           </div>
         </div>
       </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={handleFileChange}
-        aria-hidden="true"
-        tabIndex={-1}
-      />
     </div>
   );
 }
