@@ -3,10 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { Button, TextareaAutosize, Input, Skeleton, useToastContext } from '@librechat/client';
 import { InvocationMode } from 'librechat-data-provider';
+import InvocationModePicker from './InvocationModePicker';
 import SkillContentEditor from './SkillContentEditor';
 import FolderSelector from './FolderSelector';
 import { useGetSkillByIdQuery, useUpdateSkillMutation } from '~/data-provider';
-import { useLocalize } from '~/hooks';
+import { ShareSkill } from '../buttons';
+import DeleteSkill from '../dialogs/DeleteSkill';
+import { useLocalize, useAuthContext } from '~/hooks';
 import { cn } from '~/utils';
 
 type SkillFormValues = {
@@ -21,6 +24,7 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
   const params = useParams();
   const localize = useLocalize();
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const { showToast } = useToastContext();
   const skillId = skillIdProp || params.skillId || '';
   const [isContentEditing, setIsContentEditing] = useState(false);
@@ -144,32 +148,23 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
               )}
             />
             <div className="flex items-center gap-2">
-              <Controller
-                name="invocationMode"
-                control={control}
-                render={({ field }) => (
-                  <select
-                    {...field}
-                    className="h-9 rounded-xl border border-border-medium bg-transparent px-3 text-sm text-text-primary"
-                    aria-label={localize('com_ui_invocation_mode')}
-                  >
-                    <option value={InvocationMode.auto}>
-                      {localize('com_ui_invocation_auto')}
-                    </option>
-                    <option value={InvocationMode.manual}>
-                      {localize('com_ui_invocation_manual')}
-                    </option>
-                    <option value={InvocationMode.both}>
-                      {localize('com_ui_invocation_both')}
-                    </option>
-                  </select>
-                )}
-              />
               <FolderSelector />
+              <ShareSkill skill={skill} />
+              {skill.author === user?.id && (
+                <DeleteSkill
+                  skillId={skill._id}
+                  skillName={skill.name}
+                  onDelete={() => navigate('/skills/new', { replace: true })}
+                />
+              )}
             </div>
           </div>
         </div>
         <div className="flex w-full flex-col gap-4 md:mt-[1.075rem]">
+          <InvocationModePicker
+            value={methods.watch('invocationMode')}
+            onChange={(mode) => methods.setValue('invocationMode', mode, { shouldDirty: true })}
+          />
           <Controller
             name="description"
             control={control}
@@ -184,7 +179,7 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
                 <TextareaAutosize
                   {...field}
                   id="skill-description"
-                  className="w-full resize-none rounded-xl border border-border-medium bg-transparent p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary"
+                  className="w-full resize-none rounded-xl border border-border-medium bg-transparent p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none"
                   minRows={2}
                   maxRows={6}
                   tabIndex={0}
@@ -198,14 +193,16 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
             name="content"
             isEditing={isContentEditing}
             setIsEditing={setIsContentEditing}
+            rules={{
+              required: localize('com_ui_skill_content_required'),
+              validate: (v: string) =>
+                v.trim().length > 0 || localize('com_ui_skill_content_required'),
+            }}
           />
           <div className="mt-4 flex justify-end">
             <Button
               aria-label={localize('com_ui_save_skill')}
-              className={cn(
-                'w-full sm:w-auto',
-                (!isDirty || isSubmitting) && 'opacity-50',
-              )}
+              className={cn('w-full sm:w-auto', (!isDirty || isSubmitting) && 'opacity-50')}
               tabIndex={0}
               type="submit"
               aria-disabled={!isDirty || isSubmitting || undefined}
