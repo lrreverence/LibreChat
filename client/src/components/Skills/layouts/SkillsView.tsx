@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Spinner } from '@librechat/client';
 import { Navigate, useParams, useLocation } from 'react-router-dom';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
@@ -13,6 +13,7 @@ import {
   useGetSkillTreeQuery,
   useCreateSkillNodeMutation,
   useUpdateSkillNodeMutation,
+  useDeleteSkillNodeMutation,
 } from '~/data-provider';
 import { CreateSkillForm, SkillForm } from '~/components/Skills/forms';
 import SkillState from '~/components/Skills/display/SkillState';
@@ -92,6 +93,7 @@ export default function SkillsView() {
   const isNew = skillId === undefined;
   const isEdit = location.pathname.endsWith('/edit');
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasAccess = useHasAccess({
     permissionType: PermissionTypes.SKILLS,
@@ -103,6 +105,7 @@ export default function SkillsView() {
   );
   const createNode = useCreateSkillNodeMutation(skillId ?? '');
   const updateNode = useUpdateSkillNodeMutation(skillId ?? '');
+  const deleteNode = useDeleteSkillNodeMutation(skillId ?? '');
 
   const handleSelectNode = useCallback(
     (nodeId: string, nodeType: 'file' | 'folder') => {
@@ -149,8 +152,44 @@ export default function SkillsView() {
   }, [createNode, skillId, selectedNode]);
 
   const handleUpload = useCallback(() => {
-    // File upload will be wired in a follow-up
+    fileInputRef.current?.click();
   }, []);
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || !skillId) {
+        return;
+      }
+      const parentId = selectedNode?.type === 'folder' ? selectedNode.id : null;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'file');
+        formData.append('name', file.name);
+        if (parentId) {
+          formData.append('parentId', parentId);
+        }
+        createNode.mutate({ skillId, data: formData });
+      }
+      e.target.value = '';
+    },
+    [skillId, selectedNode, createNode],
+  );
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      if (!skillId) {
+        return;
+      }
+      deleteNode.mutate({ skillId, nodeId });
+      if (selectedNode?.id === nodeId) {
+        setSelectedNode(null);
+      }
+    },
+    [skillId, deleteNode, selectedNode],
+  );
 
   const rolesLoaded = user?.role != null && roles?.[user.role] != null;
   if (!rolesLoaded) {
@@ -218,6 +257,7 @@ export default function SkillsView() {
               onSelectNode={handleSelectNode}
               onRenameNode={handleRenameNode}
               onMoveNode={handleMoveNode}
+              onDeleteNode={handleDeleteNode}
               height={600}
             />
           </div>
@@ -226,6 +266,15 @@ export default function SkillsView() {
       <div className="flex-1 overflow-hidden">
         {renderFilePanel(skillId!, selectedNode, localize)}
       </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
     </div>
   );
 }

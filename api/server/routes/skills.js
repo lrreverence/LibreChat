@@ -1,7 +1,12 @@
+const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs').promises;
 const express = require('express');
 const { ObjectId } = require('mongodb');
 const { generateCheckAccess } = require('@librechat/api');
 const { logger, escapeRegExp } = require('@librechat/data-schemas');
+const { createMulterInstance } = require('~/server/routes/files/multer');
+const paths = require('~/config/paths');
 const {
   Permissions,
   ResourceType,
@@ -326,6 +331,20 @@ router.post(
   '/:skillId/tree/node',
   checkSkillCreate,
   canAccessSkillResource({ requiredPermission: PermissionBits.EDIT }),
+  async (req, res, next) => {
+    try {
+      const upload = await createMulterInstance();
+      upload.single('file')(req, res, (err) => {
+        if (err) {
+          return res.status(400).json({ message: err.message });
+        }
+        next();
+      });
+    } catch (error) {
+      logger.error('[POST /skills/:skillId/tree/node] multer init error', error);
+      next();
+    }
+  },
   async (req, res) => {
     try {
       const { skillId } = req.params;
@@ -347,6 +366,30 @@ router.post(
         order: order ?? 0,
         author: new ObjectId(req.user.id),
       };
+
+      if (req.file && type === 'file') {
+        const fileId = crypto.randomUUID();
+        const dir = path.join(paths.uploads, req.user.id, 'skills', skillId);
+        await fs.mkdir(dir, { recursive: true });
+        const destPath = path.join(dir, `${fileId}-${name}`);
+        await fs.rename(req.file.path, destPath);
+
+        await createFile(
+          {
+            user: req.user.id,
+            file_id: fileId,
+            filename: name,
+            filepath: destPath,
+            type: req.file.mimetype || 'application/octet-stream',
+            bytes: req.file.size,
+            context: 'skill_file',
+            source: 'local',
+          },
+          true,
+        );
+
+        nodeData.fileId = fileId;
+      }
 
       const node = await createSkillNode(nodeData);
       res.status(201).json(node);

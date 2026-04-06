@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { Tree } from 'react-arborist';
-import SkillTreeNode from './SkillTreeNode';
+import SkillTreeNode, { TreeActionsContext } from './SkillTreeNode';
 import type { NodeApi } from 'react-arborist';
 import type { TSkillNode } from 'librechat-data-provider';
 import type { SkillTreeData } from './SkillTreeNode';
@@ -11,6 +11,7 @@ interface SkillFileTreeProps {
   onSelectNode: (nodeId: string, nodeType: 'file' | 'folder') => void;
   onRenameNode: (nodeId: string, newName: string) => void;
   onMoveNode: (nodeId: string, newParentId: string | null, index: number) => void;
+  onDeleteNode: (nodeId: string) => void;
   height: number;
 }
 
@@ -55,9 +56,11 @@ export default function SkillFileTree({
   onSelectNode,
   onRenameNode,
   onMoveNode,
+  onDeleteNode,
   height,
 }: SkillFileTreeProps) {
   const treeData = useMemo(() => buildTreeData(nodes), [nodes]);
+  const treeActions = useMemo(() => ({ onDeleteNode }), [onDeleteNode]);
 
   const handleSelect = useCallback(
     (selectedNodes: NodeApi<SkillTreeData>[]) => {
@@ -96,18 +99,20 @@ export default function SkillFileTree({
   );
 
   return (
-    <Tree<SkillTreeData>
-      data={treeData}
-      selection={selectedNodeId ?? undefined}
-      onSelect={handleSelect}
-      onRename={handleRename}
-      onMove={handleMove}
-      rowHeight={32}
-      indent={16}
-      height={height}
-      openByDefault={false}
-    >
-      {SkillTreeNode}
-    </Tree>
+    <TreeActionsContext.Provider value={treeActions}>
+      <Tree<SkillTreeData>
+        data={treeData}
+        selection={selectedNodeId ?? undefined}
+        onSelect={handleSelect}
+        onRename={handleRename}
+        onMove={handleMove}
+        rowHeight={32}
+        indent={16}
+        height={height}
+        openByDefault={false}
+      >
+        {SkillTreeNode}
+      </Tree>
+    </TreeActionsContext.Provider>
   );
 }

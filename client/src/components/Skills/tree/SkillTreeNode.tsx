@@ -1,5 +1,5 @@
-import { memo, useCallback } from 'react';
-import { File, Folder, FolderOpen, ChevronRight } from 'lucide-react';
+import { memo, useCallback, useContext, createContext } from 'react';
+import { File, Folder, FolderOpen, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '~/utils';
 import type { NodeRendererProps } from 'react-arborist';
 
@@ -11,10 +11,17 @@ interface SkillTreeData {
   children?: SkillTreeData[];
 }
 
+interface TreeActions {
+  onDeleteNode: (nodeId: string) => void;
+}
+
+export const TreeActionsContext = createContext<TreeActions>({ onDeleteNode: () => {} });
+
 function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeData>) {
   const isFolder = node.data.nodeType === 'folder';
   const isOpen = node.isOpen;
   const isSelected = node.isSelected;
+  const { onDeleteNode } = useContext(TreeActionsContext);
 
   const handleClick = useCallback(() => {
     if (isFolder) {
@@ -24,6 +31,14 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
     }
   }, [node, isFolder]);
 
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onDeleteNode(node.id);
+    },
+    [node.id, onDeleteNode],
+  );
+
   return (
     <div
       ref={dragHandle}
@@ -32,7 +47,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       aria-selected={isSelected}
       aria-expanded={isFolder ? isOpen : undefined}
       className={cn(
-        'flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-sm',
+        'group flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-sm',
         'hover:bg-surface-hover',
         isSelected && 'bg-surface-active text-text-primary',
         !isSelected && 'text-text-secondary',
@@ -44,6 +59,9 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
         }
         if (e.key === 'F2') {
           node.edit();
+        }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          onDeleteNode(node.id);
         }
       }}
     >
@@ -78,7 +96,18 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           }}
         />
       ) : (
-        <span className="truncate">{node.data.name}</span>
+        <>
+          <span className="min-w-0 flex-1 truncate">{node.data.name}</span>
+          <button
+            type="button"
+            className="ml-auto hidden shrink-0 rounded p-0.5 text-text-tertiary hover:text-red-500 group-hover:block"
+            onClick={handleDelete}
+            aria-label={`Delete ${node.data.name}`}
+            tabIndex={-1}
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        </>
       )}
     </div>
   );
