@@ -107,6 +107,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       className={cn(
         'group flex cursor-pointer items-center gap-1.5 rounded-lg py-1 pl-2 pr-1 text-sm',
         'transition-colors duration-100',
+        'duration-200 ease-out animate-in fade-in slide-in-from-top-1',
         isSelected
           ? 'bg-surface-active text-text-primary'
           : 'text-text-secondary hover:bg-surface-hover',
