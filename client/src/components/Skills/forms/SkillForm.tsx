@@ -4,7 +4,7 @@ import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { Button, TextareaAutosize, Input, Skeleton, useToastContext } from '@librechat/client';
 import { InvocationMode } from 'librechat-data-provider';
 import InvocationModePicker from './InvocationModePicker';
-import FolderSelector from './FolderSelector';
+import CategorySelector from './CategorySelector';
 import { useGetSkillByIdQuery, useUpdateSkillMutation } from '~/data-provider';
 import { ShareSkill } from '../buttons';
 import DeleteSkill from '../dialogs/DeleteSkill';
@@ -15,7 +15,7 @@ type SkillFormValues = {
   name: string;
   description: string;
   invocationMode: InvocationMode;
-  folderId?: string;
+  category: string;
 };
 
 const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
@@ -35,7 +35,7 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
       name: '',
       description: '',
       invocationMode: InvocationMode.auto,
-      folderId: undefined,
+      category: '',
     },
   });
 
@@ -53,7 +53,7 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
           name: skill.name,
           description: skill.description,
           invocationMode: skill.invocationMode,
-          folderId: skill.folderId,
+          category: skill.category ?? '',
         },
         { keepDirtyValues: false },
       );
@@ -83,7 +83,7 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
         name: data.name,
         description: data.description,
         invocationMode: data.invocationMode,
-        folderId: data.folderId,
+        category: data.category,
       },
     });
   };
@@ -142,7 +142,7 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
               )}
             />
             <div className="flex items-center gap-2">
-              <FolderSelector />
+              <CategorySelector />
               <ShareSkill skill={skill} />
               {skill.author === user?.id && (
                 <DeleteSkill

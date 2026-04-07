@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { QueryKeys, dataService } from 'librechat-data-provider';
 import type { QueryObserverResult, UseQueryOptions } from '@tanstack/react-query';
 import type t from 'librechat-data-provider';
-import type { TSkillFolder } from 'librechat-data-provider';
 
 /**
  * Hook for listing skills with optional filtering/pagination params
@@ -38,24 +37,6 @@ export const useGetSkillByIdQuery = (
       refetchOnReconnect: false,
       refetchOnMount: false,
       enabled: !!skillId && (config?.enabled ?? true),
-      ...config,
-    },
-  );
-};
-
-/**
- * Hook for listing skill folders
- */
-export const useListSkillFoldersQuery = <TData = TSkillFolder[]>(
-  config?: UseQueryOptions<TSkillFolder[], unknown, TData>,
-): QueryObserverResult<TData> => {
-  return useQuery<TSkillFolder[], unknown, TData>(
-    [QueryKeys.skillFolders],
-    () => dataService.listSkillFolders(),
-    {
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: false,
       ...config,
     },
   );

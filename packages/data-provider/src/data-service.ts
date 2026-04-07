@@ -959,29 +959,6 @@ export const listSkills = (params: t.TSkillListParams): Promise<t.TSkillListResp
 };
 
 /**
- * Skill Folders
- */
-
-export const listSkillFolders = (): Promise<t.TSkillFolder[]> => {
-  return request.get(endpoints.skillFolders({}));
-};
-
-export const createSkillFolder = (data: t.TCreateSkillFolderRequest): Promise<t.TSkillFolder> => {
-  return request.post(endpoints.skillFolders({}), data);
-};
-
-export const updateSkillFolder = ({
-  _id,
-  name,
-}: t.TUpdateSkillFolderRequest): Promise<t.TSkillFolder> => {
-  return request.patch(endpoints.skillFolders({ path: _id }), { name });
-};
-
-export const deleteSkillFolder = ({ _id }: t.TDeleteSkillFolderRequest): Promise<void> => {
-  return request.delete(endpoints.skillFolders({ path: _id }));
-};
-
-/**
  * Skill Tree (nodes)
  */
 

@@ -29,7 +29,6 @@ import { createSystemGrantModel } from './systemGrant';
 import { createGroupModel } from './group';
 import { createConfigModel } from './config';
 import { createSkillModel } from './skill';
-import { createSkillFolderModel } from './skillFolder';
 import { createSkillNodeModel } from './skillNode';
 
 /**
@@ -68,7 +67,6 @@ export function createModels(mongoose: typeof import('mongoose')) {
     Group: createGroupModel(mongoose),
     Config: createConfigModel(mongoose),
     Skill: createSkillModel(mongoose),
-    SkillFolder: createSkillFolderModel(mongoose),
     SkillNode: createSkillNodeModel(mongoose),
   };
 }

@@ -5,7 +5,7 @@ import { InvocationMode } from 'librechat-data-provider';
 import type { TCreateSkillRequest } from 'librechat-data-provider';
 import InvocationModePicker from './InvocationModePicker';
 import { useCreateSkillMutation } from '~/data-provider';
-import FolderSelector from './FolderSelector';
+import CategorySelector from './CategorySelector';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -13,14 +13,14 @@ type CreateSkillFormValues = {
   name: string;
   description: string;
   invocationMode: InvocationMode;
-  folderId?: string;
+  category: string;
 };
 
 const defaultSkill: CreateSkillFormValues = {
   name: '',
   description: '',
   invocationMode: InvocationMode.auto,
-  folderId: undefined,
+  category: '',
 };
 
 interface CreateSkillFormProps {
@@ -64,8 +64,8 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
       description: data.description,
       invocationMode: data.invocationMode,
     };
-    if (data.folderId) {
-      body.folderId = data.folderId;
+    if (data.category) {
+      body.category = data.category;
     }
     createSkillMutation.mutate(body);
   };
@@ -110,7 +110,7 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
               )}
             />
             <div className="flex items-center gap-2">
-              <FolderSelector />
+              <CategorySelector />
             </div>
           </div>
         </div>

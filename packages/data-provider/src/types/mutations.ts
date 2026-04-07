@@ -350,15 +350,6 @@ export type UpdateSkillPermOptions = MutationOptions<
   types.TError | null | undefined
 >;
 
-export type CreateSkillFolderBody = types.TCreateSkillFolderRequest;
-export type CreateSkillFolderOptions = MutationOptions<types.TSkillFolder, CreateSkillFolderBody>;
-
-export type UpdateSkillFolderBody = types.TUpdateSkillFolderRequest;
-export type UpdateSkillFolderOptions = MutationOptions<types.TSkillFolder, UpdateSkillFolderBody>;
-
-export type DeleteSkillFolderBody = types.TDeleteSkillFolderRequest;
-export type DeleteSkillFolderOptions = MutationOptions<void, DeleteSkillFolderBody>;
-
 /* Skill Node mutations */
 
 export type CreateSkillNodeBody = {

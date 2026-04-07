@@ -288,21 +288,6 @@ export const skills = ({ path = '', options }: { path?: string; options?: object
   return url;
 };
 
-export const skillFolders = ({ path = '', options }: { path?: string; options?: object }) => {
-  let url = `${BASE_URL}/api/skills/folders`;
-
-  if (path && path !== '') {
-    url += `/${path}`;
-  }
-
-  if (options && Object.keys(options).length > 0) {
-    const queryParams = new URLSearchParams(options as Record<string, string>).toString();
-    url += `?${queryParams}`;
-  }
-
-  return url;
-};
-
 export const skillTree = ({ skillId, path = '' }: { skillId: string; path?: string }) => {
   let url = `${BASE_URL}/api/skills/${encodeURIComponent(skillId)}/tree`;
   if (path) {

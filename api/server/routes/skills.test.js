@@ -34,7 +34,7 @@ jest.mock('~/server/middleware', () => ({
 
 let app;
 let mongoServer;
-let Skill, SkillFolder, AclEntry, AccessRole, User, Role;
+let Skill, AclEntry, AccessRole, User, Role;
 let testUsers, _testRoles;
 let _grantPermission;
 let currentTestUser;
@@ -50,7 +50,6 @@ beforeAll(async () => {
 
   const dbModels = require('~/db/models');
   Skill = dbModels.Skill;
-  SkillFolder = dbModels.SkillFolder;
   AclEntry = dbModels.AclEntry;
   AccessRole = dbModels.AccessRole;
   User = dbModels.User;
@@ -86,7 +85,6 @@ beforeAll(async () => {
 afterEach(async () => {
   currentTestUser = testUsers.owner;
   await Skill.deleteMany({});
-  await SkillFolder.deleteMany({});
   await AclEntry.deleteMany({ resourceType: ResourceType.SKILL });
 });
 
@@ -318,93 +316,5 @@ describe('DELETE /api/skills/:skillId', () => {
 
     const res = await request(app).delete(`/api/skills/${create.body._id}`);
     expect(res.status).toBe(403);
-  });
-});
-
-describe('Folder routes', () => {
-  describe('GET /api/skills/folders', () => {
-    it('should return only the current user folders', async () => {
-      await SkillFolder.create({ name: 'Mine', author: testUsers.owner._id });
-      await SkillFolder.create({ name: 'Other', author: testUsers.viewer._id });
-
-      const res = await request(app).get('/api/skills/folders');
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].name).toBe('Mine');
-    });
-  });
-
-  describe('POST /api/skills/folders', () => {
-    it('should create a folder', async () => {
-      const res = await request(app).post('/api/skills/folders').send({ name: 'New Folder' });
-      expect(res.status).toBe(200);
-      expect(res.body.name).toBe('New Folder');
-      expect(res.body.author).toBe(testUsers.owner._id.toString());
-    });
-
-    it('should reject empty name', async () => {
-      const res = await request(app).post('/api/skills/folders').send({ name: '' });
-      expect(res.status).toBe(400);
-    });
-  });
-
-  describe('PATCH /api/skills/folders/:folderId', () => {
-    it('should rename an owned folder', async () => {
-      const folder = await SkillFolder.create({ name: 'Old', author: testUsers.owner._id });
-      const res = await request(app)
-        .patch(`/api/skills/folders/${folder._id}`)
-        .send({ name: 'Renamed' });
-      expect(res.status).toBe(200);
-      expect(res.body.name).toBe('Renamed');
-    });
-
-    it('should return 404 for folder owned by another user', async () => {
-      const folder = await SkillFolder.create({ name: 'Other', author: testUsers.viewer._id });
-      const res = await request(app)
-        .patch(`/api/skills/folders/${folder._id}`)
-        .send({ name: 'Stolen' });
-      expect(res.status).toBe(404);
-
-      const unchanged = await SkillFolder.findById(folder._id).lean();
-      expect(unchanged.name).toBe('Other');
-    });
-
-    it('should return 404 for invalid ObjectId', async () => {
-      const res = await request(app)
-        .patch('/api/skills/folders/not-a-valid-id')
-        .send({ name: 'X' });
-      expect(res.status).toBe(404);
-    });
-
-    it('should reject empty name', async () => {
-      const folder = await SkillFolder.create({ name: 'X', author: testUsers.owner._id });
-      const res = await request(app)
-        .patch(`/api/skills/folders/${folder._id}`)
-        .send({ name: '  ' });
-      expect(res.status).toBe(400);
-    });
-  });
-
-  describe('DELETE /api/skills/folders/:folderId', () => {
-    it('should delete an owned folder', async () => {
-      const folder = await SkillFolder.create({ name: 'Del', author: testUsers.owner._id });
-      const res = await request(app).delete(`/api/skills/folders/${folder._id}`);
-      expect(res.status).toBe(200);
-      expect(res.body.message).toMatch(/deleted/i);
-    });
-
-    it('should return 404 for folder owned by another user', async () => {
-      const folder = await SkillFolder.create({ name: 'Protected', author: testUsers.viewer._id });
-      const res = await request(app).delete(`/api/skills/folders/${folder._id}`);
-      expect(res.status).toBe(404);
-
-      const still = await SkillFolder.findById(folder._id);
-      expect(still).toBeDefined();
-    });
-
-    it('should return 404 for invalid ObjectId', async () => {
-      const res = await request(app).delete('/api/skills/folders/bad-id');
-      expect(res.status).toBe(404);
-    });
   });
 });

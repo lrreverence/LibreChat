@@ -23,10 +23,6 @@ const {
   deleteSkill,
   getRoleByName,
   getListSkillsByAccess,
-  getSkillFolders,
-  createSkillFolder,
-  updateSkillFolder,
-  deleteSkillFolder,
   getSkillTree,
   getSkillNode,
   createSkillNode,
@@ -57,7 +53,7 @@ const checkSkillCreate = generateCheckAccess({
 });
 
 /** Allowed fields for skill create/update — prevents mass assignment of author, tenantId, etc. */
-const ALLOWED_SKILL_FIELDS = ['name', 'description', 'folderId', 'invocationMode'];
+const ALLOWED_SKILL_FIELDS = ['name', 'description', 'category', 'invocationMode'];
 const ALLOWED_NODE_FIELDS = ['name', 'parentId', 'order'];
 
 function pickAllowed(body, fields) {
@@ -68,10 +64,6 @@ function pickAllowed(body, fields) {
     }
   }
   return result;
-}
-
-function isValidObjectId(id) {
-  return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
 }
 
 router.use(requireJwtAuth);
@@ -164,7 +156,7 @@ router.post('/', checkSkillCreate, async (req, res) => {
  * Lists skills with ACL-aware filtering, public skill merging, and cursor pagination.
  * @route GET /api/skills
  * @param {string} [req.query.search] - Name search filter (regex).
- * @param {string} [req.query.folderId] - Filter by folder ID.
+ * @param {string} [req.query.category] - Filter by category.
  * @param {string} [req.query.isPublic] - Filter to public skills only ('true').
  * @param {string} [req.query.limit] - Page size for cursor pagination.
  * @param {string} [req.query.after] - Cursor for next page.
@@ -172,7 +164,7 @@ router.post('/', checkSkillCreate, async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const { search, folderId, isPublic, limit, after } = req.query;
+    const { search, category, isPublic, limit, after } = req.query;
 
     const [accessibleIds, publiclyAccessibleIds] = await Promise.all([
       findAccessibleResources({
@@ -210,8 +202,8 @@ router.get('/', async (req, res) => {
     if (search) {
       otherParams.name = new RegExp(escapeRegExp(search), 'i');
     }
-    if (folderId) {
-      otherParams.folderId = folderId;
+    if (category) {
+      otherParams.category = category;
     }
     if (isPublic === 'true') {
       otherParams.isPublic = true;
@@ -246,104 +238,6 @@ router.get('/', async (req, res) => {
   } catch (error) {
     logger.error('[listSkills]', error);
     res.status(500).json({ error: 'Error listing skills' });
-  }
-});
-
-/**
- * Lists skill folders for the authenticated user.
- * @route GET /api/skills/folders
- * @returns {Array} 200 - Array of folder documents
- */
-router.get('/folders', async (req, res) => {
-  try {
-    const folders = await getSkillFolders(req.user.id);
-    res.status(200).json(folders);
-  } catch (error) {
-    logger.error('[listSkillFolders]', error);
-    res.status(500).json({ error: 'Error listing skill folders' });
-  }
-});
-
-/**
- * Creates a new skill folder.
- * @route POST /api/skills/folders
- * @param {object} req.body - Must include `name`.
- * @returns {object} 200 - Created folder document
- */
-router.post('/folders', async (req, res) => {
-  try {
-    const { name } = req.body;
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return res
-        .status(400)
-        .json({ error: 'Folder name is required and must be a non-empty string' });
-    }
-
-    const folder = await createSkillFolder({ name: name.trim(), author: req.user.id });
-    res.status(200).json(folder);
-  } catch (error) {
-    logger.error('[createSkillFolder]', error);
-    res.status(500).json({ error: 'Error creating skill folder' });
-  }
-});
-
-/**
- * Updates a skill folder by ID. Only the folder author can update it.
- * @route PATCH /api/skills/folders/:folderId
- * @param {string} req.params.folderId - Folder ObjectId.
- * @param {object} req.body - Must include `name`.
- * @returns {object} 200 - Updated folder document
- */
-router.patch('/folders/:folderId', async (req, res) => {
-  try {
-    const { folderId } = req.params;
-    if (!isValidObjectId(folderId)) {
-      return res.status(404).json({ error: 'Folder not found' });
-    }
-
-    const { name } = req.body;
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return res
-        .status(400)
-        .json({ error: 'Folder name is required and must be a non-empty string' });
-    }
-
-    const folder = await updateSkillFolder({
-      _id: folderId,
-      author: req.user.id,
-      data: { name: name.trim() },
-    });
-    if (!folder) {
-      return res.status(404).json({ error: 'Folder not found' });
-    }
-    res.status(200).json(folder);
-  } catch (error) {
-    logger.error('[updateSkillFolder]', error);
-    res.status(500).json({ error: 'Error updating skill folder' });
-  }
-});
-
-/**
- * Deletes a skill folder by ID. Only the folder author can delete it.
- * @route DELETE /api/skills/folders/:folderId
- * @param {string} req.params.folderId - Folder ObjectId.
- * @returns {object} 200 - Deletion confirmation
- */
-router.delete('/folders/:folderId', async (req, res) => {
-  try {
-    const { folderId } = req.params;
-    if (!isValidObjectId(folderId)) {
-      return res.status(404).json({ error: 'Folder not found' });
-    }
-
-    const result = await deleteSkillFolder({ _id: folderId, author: req.user.id });
-    if (!result) {
-      return res.status(404).json({ error: 'Folder not found' });
-    }
-    res.status(200).json({ message: 'Folder deleted' });
-  } catch (error) {
-    logger.error('[deleteSkillFolder]', error);
-    res.status(500).json({ error: 'Error deleting skill folder' });
   }
 });
 
@@ -617,7 +511,7 @@ router.get(
  * Updates a skill by ID.
  * @route PATCH /api/skills/:skillId
  * @param {string} req.params.skillId - Skill ObjectId.
- * @param {object} req.body - Fields to update (name, description, folderId, invocationMode).
+ * @param {object} req.body - Fields to update (name, description, category, invocationMode).
  * @returns {ISkillDocument} 200 - Updated skill document
  */
 router.patch(

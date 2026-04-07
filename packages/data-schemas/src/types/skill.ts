@@ -3,7 +3,7 @@ import type { Document, Types } from 'mongoose';
 export interface ISkill {
   name: string;
   description: string;
-  folderId?: Types.ObjectId;
+  category?: string;
   invocationMode: 'auto' | 'manual' | 'both';
   author: Types.ObjectId;
   authorName: string;
@@ -15,13 +15,3 @@ export interface ISkill {
 }
 
 export interface ISkillDocument extends ISkill, Document {}
-
-export interface ISkillFolder {
-  name: string;
-  author: Types.ObjectId;
-  tenantId?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface ISkillFolderDocument extends ISkillFolder, Document {}

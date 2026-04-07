@@ -68,7 +68,6 @@ export enum QueryKeys {
   /* Skills */
   skills = 'skills',
   skill = 'skill',
-  skillFolders = 'skillFolders',
   skillTree = 'skillTree',
   skillNodeContent = 'skillNodeContent',
 }
@@ -106,9 +105,6 @@ export enum MutationKeys {
   createSkill = 'createSkill',
   updateSkill = 'updateSkill',
   deleteSkill = 'deleteSkill',
-  createSkillFolder = 'createSkillFolder',
-  updateSkillFolder = 'updateSkillFolder',
-  deleteSkillFolder = 'deleteSkillFolder',
   createSkillNode = 'createSkillNode',
   updateSkillNode = 'updateSkillNode',
   deleteSkillNode = 'deleteSkillNode',

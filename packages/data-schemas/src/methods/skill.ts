@@ -1,6 +1,6 @@
 import { ResourceType } from 'librechat-data-provider';
 import type { Model, Types } from 'mongoose';
-import type { IAclEntry, ISkillDocument, ISkillFolderDocument } from '~/types';
+import type { IAclEntry, ISkillDocument } from '~/types';
 import { isValidObjectIdString } from '~/utils/objectId';
 import logger from '~/config/winston';
 
@@ -130,7 +130,7 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
     const findQuery = Skill.find(matchQuery)
       .sort({ updatedAt: -1, _id: 1 })
       .select(
-        'name description folderId invocationMode author authorName projectIds isPublic createdAt updatedAt',
+        'name description category invocationMode author authorName projectIds isPublic createdAt updatedAt',
       );
 
     if (isPaginated && normalizedLimit) {
@@ -172,7 +172,7 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
   }
 
   /**
-   * Deletes skills solely owned by the user and cleans up their ACLs and folders.
+   * Deletes skills solely owned by the user and cleans up their ACLs.
    * Groups with other owners are left intact; the caller is responsible for
    * removing the user's own ACL principal entries separately.
    *
@@ -182,7 +182,6 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
   async function deleteUserSkills(userId: string) {
     try {
       const Skill = mongoose.models.Skill as Model<ISkillDocument>;
-      const SkillFolder = mongoose.models.SkillFolder as Model<ISkillFolderDocument>;
       const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
 
       const userObjectId = new ObjectId(userId);
@@ -215,65 +214,9 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
       });
 
       await Skill.deleteMany({ _id: { $in: allSkillIdsToDelete } });
-      await SkillFolder.deleteMany({ author: userObjectId });
     } catch (error) {
       logger.error('[deleteUserSkills] General error:', error);
     }
-  }
-
-  /**
-   * Get all skill folders for a user, sorted by name.
-   */
-  async function getSkillFolders(author: string) {
-    const SkillFolder = mongoose.models.SkillFolder as Model<ISkillFolderDocument>;
-    return SkillFolder.find({ author: new ObjectId(author) })
-      .sort({ name: 1 })
-      .lean();
-  }
-
-  /**
-   * Create a new skill folder.
-   */
-  async function createSkillFolder(data: Partial<ISkillFolderDocument>) {
-    const SkillFolder = mongoose.models.SkillFolder as Model<ISkillFolderDocument>;
-    const created = await SkillFolder.create(data);
-    return SkillFolder.findById(created._id).lean();
-  }
-
-  /**
-   * Update a skill folder by its ID. Scoped by author for ownership enforcement.
-   */
-  async function updateSkillFolder({
-    _id,
-    author,
-    data,
-  }: {
-    _id: string;
-    author: string;
-    data: Partial<ISkillFolderDocument>;
-  }) {
-    const SkillFolder = mongoose.models.SkillFolder as Model<ISkillFolderDocument>;
-    return SkillFolder.findOneAndUpdate({ _id, author: new ObjectId(author) }, data, {
-      new: true,
-    }).lean();
-  }
-
-  /**
-   * Delete a skill folder and unset folderId on any skills referencing it.
-   * Scoped by author for ownership enforcement. Returns null if the folder
-   * does not exist or is not owned by the given author.
-   */
-  async function deleteSkillFolder({ _id, author }: { _id: string; author: string }) {
-    const Skill = mongoose.models.Skill as Model<ISkillDocument>;
-    const SkillFolder = mongoose.models.SkillFolder as Model<ISkillFolderDocument>;
-
-    const result = await SkillFolder.findOneAndDelete({ _id, author: new ObjectId(author) }).lean();
-    if (!result) {
-      return null;
-    }
-
-    await Skill.updateMany({ folderId: _id }, { $unset: { folderId: '' } });
-    return { message: 'Skill folder deleted successfully' };
   }
 
   return {
@@ -283,10 +226,6 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
     deleteSkill,
     getListSkillsByAccess,
     deleteUserSkills,
-    getSkillFolders,
-    createSkillFolder,
-    updateSkillFolder,
-    deleteSkillFolder,
   };
 }
 

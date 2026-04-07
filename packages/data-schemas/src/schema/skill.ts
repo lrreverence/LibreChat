@@ -12,9 +12,9 @@ const skillSchema = new Schema<ISkillDocument>(
       type: String,
       default: '',
     },
-    folderId: {
-      type: Schema.Types.ObjectId,
-      ref: 'SkillFolder',
+    category: {
+      type: String,
+      default: '',
       index: true,
     },
     invocationMode: {
