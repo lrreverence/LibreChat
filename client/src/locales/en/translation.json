@@ -1256,6 +1256,8 @@
   "com_ui_my_prompts": "My Prompts",
   "com_ui_my_skills": "My Skills",
   "com_ui_favorites": "Favorites",
+  "com_ui_favorite": "Add to favorites",
+  "com_ui_unfavorite": "Remove from favorites",
   "com_ui_name": "Name",
   "com_ui_name_sort": "Sort by Name",
   "com_ui_new": "New",

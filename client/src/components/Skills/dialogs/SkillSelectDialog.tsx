@@ -26,6 +26,19 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
   const { getValues, setValue } = useFormContext<AgentForm>();
   const [searchValue, setSearchValue] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>(SystemCategories.ALL);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  const toggleFavorite = useCallback((skillId: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(skillId)) {
+        next.delete(skillId);
+      } else {
+        next.add(skillId);
+      }
+      return next;
+    });
+  }, []);
 
   const hasCreateAccess = useHasAccess({
     permissionType: PermissionTypes.SKILLS,
@@ -75,7 +88,7 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
     if (activeFilter === SKILL_MY) {
       filtered = filtered.filter((s) => s.author === user?.id);
     } else if (activeFilter === SKILL_FAVORITES) {
-      filtered = [];
+      filtered = filtered.filter((s) => favorites.has(s._id));
     } else if (activeFilter === SystemCategories.NO_CATEGORY) {
       filtered = filtered.filter((s) => !s.category);
     } else if (activeFilter !== SystemCategories.ALL) {
@@ -88,71 +101,95 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
     }
 
     return filtered;
-  }, [allSkills, activeFilter, searchValue, user?.id]);
+  }, [allSkills, activeFilter, searchValue, user?.id, favorites]);
 
   const renderSkillCard = (skill: TSkill) => {
     const selected = isAttached(skill._id);
+    const isFavorite = favorites.has(skill._id);
     const isShared = skill.author !== user?.id && Boolean(skill.authorName);
     const isPublic = skill.isPublic === true;
     return (
-      <button
+      <div
         key={skill._id}
-        type="button"
         role="option"
         aria-selected={selected}
         onClick={() => handleToggleSkill(skill._id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggleSkill(skill._id);
+          }
+        }}
+        tabIndex={0}
         className={cn(
-          'flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all duration-200',
+          'group relative flex h-32 cursor-pointer flex-col rounded-xl border p-3.5 text-left transition-all duration-200',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary',
           selected
-            ? 'border-green-500/60 bg-green-500/[0.06]'
+            ? 'border-green-500/70 bg-green-500/[0.06]'
             : 'border-border-light hover:border-border-medium hover:bg-surface-tertiary',
         )}
       >
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-text-primary">{skill.name}</p>
-          {skill.description && (
-            <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-text-secondary">
-              {skill.description}
-            </p>
-          )}
-          {(isShared || isPublic || skill.category) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              {skill.category && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-2 py-0.5 text-[10px] text-text-tertiary">
-                  <CategoryIcon category={skill.category} className="size-2.5" />
-                  {skill.category}
-                </span>
-              )}
-              {isShared && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-2 py-0.5 text-[10px] text-text-tertiary">
-                  <User className="size-2.5" aria-hidden="true" />
-                  {skill.authorName}
-                </span>
-              )}
-              {isPublic && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-2 py-0.5 text-[10px] text-text-tertiary">
-                  <EarthIcon className="size-2.5" aria-hidden="true" />
-                  {localize('com_ui_sr_public_skill')}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-        <span
-          className={cn(
-            'mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200',
-            selected ? 'border-green-500 bg-green-500' : 'border-border-medium bg-transparent',
-          )}
-          aria-hidden="true"
-        >
-          <Check
+        <div className="flex items-start gap-2">
+          <p className="min-w-0 flex-1 truncate pr-1 text-sm font-semibold text-text-primary">
+            {skill.name}
+          </p>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFavorite(skill._id);
+            }}
             className={cn(
-              'size-3 text-white transition-all duration-200',
-              selected ? 'scale-100 opacity-100' : 'scale-50 opacity-0',
+              'flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors',
+              isFavorite
+                ? 'text-yellow-500 hover:bg-yellow-500/10'
+                : 'text-text-tertiary opacity-0 hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100',
             )}
-          />
-        </span>
-      </button>
+            aria-label={isFavorite ? localize('com_ui_unfavorite') : localize('com_ui_favorite')}
+            aria-pressed={isFavorite}
+          >
+            <Star className={cn('size-4', isFavorite && 'fill-current')} aria-hidden="true" />
+          </button>
+        </div>
+        {skill.description && (
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-text-secondary">
+            {skill.description}
+          </p>
+        )}
+        <div className="mt-auto flex items-center gap-1.5 pt-2">
+          {skill.category && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-2 py-0.5 text-[10px] text-text-tertiary">
+              <CategoryIcon category={skill.category} className="size-2.5" />
+              {skill.category}
+            </span>
+          )}
+          {isShared && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-1.5 py-0.5 text-text-tertiary"
+              title={skill.authorName}
+            >
+              <User className="size-2.5" aria-hidden="true" />
+            </span>
+          )}
+          {isPublic && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-1.5 py-0.5 text-text-tertiary"
+              title={localize('com_ui_sr_public_skill')}
+            >
+              <EarthIcon className="size-2.5" aria-hidden="true" />
+            </span>
+          )}
+          <span
+            className={cn(
+              'ml-auto flex size-5 shrink-0 items-center justify-center rounded-full transition-all duration-200',
+              selected ? 'scale-100 bg-green-500 text-white opacity-100' : 'scale-75 opacity-0',
+            )}
+            aria-hidden="true"
+          >
+            <Check className="size-3" strokeWidth={3} />
+          </span>
+        </div>
+      </div>
     );
   };
 
@@ -200,7 +237,7 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
               <button
                 type="button"
                 onClick={handleCreate}
-                className="mb-1 flex w-full items-center gap-2 rounded-lg border border-border-light bg-transparent px-2.5 py-1.5 text-left text-sm text-text-primary transition-colors hover:border-border-medium hover:bg-surface-hover"
+                className="mb-1 flex w-full items-center justify-center gap-2 rounded-lg border border-border-light bg-transparent px-2.5 py-1.5 text-center text-sm text-text-primary transition-colors hover:border-border-medium hover:bg-surface-hover"
                 aria-label={localize('com_ui_create_skill')}
               >
                 <Plus className="size-4 shrink-0" aria-hidden="true" />
