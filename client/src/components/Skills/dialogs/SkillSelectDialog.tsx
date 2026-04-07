@@ -8,7 +8,13 @@ import type { TSkill } from 'librechat-data-provider';
 import type { AgentForm } from '~/common';
 import { useListSkillsQuery } from '~/data-provider';
 import { CategoryIcon } from '~/components/Prompts';
-import { useLocalize, useAuthContext, useCategories, useHasAccess, useFavorites } from '~/hooks';
+import {
+  useLocalize,
+  useAuthContext,
+  useCategories,
+  useHasAccess,
+  useSkillFavorites,
+} from '~/hooks';
 import { cn } from '~/utils';
 
 interface SkillSelectDialogProps {
@@ -26,7 +32,7 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
   const { getValues, setValue } = useFormContext<AgentForm>();
   const [searchValue, setSearchValue] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>(SystemCategories.ALL);
-  const { isFavoriteSkill, toggleFavoriteSkill } = useFavorites();
+  const { isFavorite: isFavoriteSkill, toggle: toggleFavoriteSkill } = useSkillFavorites();
 
   const hasCreateAccess = useHasAccess({
     permissionType: PermissionTypes.SKILLS,

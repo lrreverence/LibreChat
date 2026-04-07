@@ -140,9 +140,12 @@ const userSchema = new Schema<IUser>(
           agentId: String, // for agent
           model: String, // for model
           endpoint: String, // for model
-          skillId: String, // for skill
         },
       ],
+      default: [],
+    },
+    skillFavorites: {
+      type: [String],
       default: [],
     },
     /** Field for external source identification (for consistency with TPrincipal schema) */

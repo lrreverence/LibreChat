@@ -39,6 +39,16 @@ export function updateFavorites(favorites: FavoriteItem[]): Promise<FavoriteItem
   return request.post(`${endpoints.apiBaseUrl()}/api/user/settings/favorites`, { favorites });
 }
 
+export function getSkillFavorites(): Promise<string[]> {
+  return request.get(`${endpoints.apiBaseUrl()}/api/user/settings/favorites/skills`);
+}
+
+export function updateSkillFavorites(skillFavorites: string[]): Promise<string[]> {
+  return request.post(`${endpoints.apiBaseUrl()}/api/user/settings/favorites/skills`, {
+    skillFavorites,
+  });
+}
+
 export function getSharedMessages(shareId: string): Promise<t.TSharedMessagesResponse> {
   return request.get(endpoints.shareMessages(shareId));
 }

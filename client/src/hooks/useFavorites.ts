@@ -8,7 +8,7 @@ import { useLocalize } from '~/hooks';
 import { logger } from '~/utils';
 
 /** Maximum number of favorites allowed (must match backend MAX_FAVORITES) */
-const MAX_FAVORITES = 50;
+const MAX_FAVORITES = 15;
 
 /**
  * Hook for managing user favorites (pinned agents and models).
@@ -35,8 +35,6 @@ const cleanFavorites = (favorites: Favorite[]): Favorite[] => {
       cleaned.push({ agentId: f.agentId });
     } else if (f.model && f.endpoint) {
       cleaned.push({ model: f.model, endpoint: f.endpoint });
-    } else if (f.skillId) {
-      cleaned.push({ skillId: f.skillId });
     }
   }
   return cleaned;
@@ -52,8 +50,6 @@ export default function useFavorites() {
   const isMutatingRef = useRef(false);
 
   useEffect(() => {
-    // Skip updating local state if a mutation is in progress or just completed
-    // The local state is already optimistically updated by saveFavorites
     if (isMutatingRef.current || updateFavoritesMutation.isLoading) {
       return;
     }
@@ -93,11 +89,8 @@ export default function useFavorites() {
       } catch (error) {
         logger.error('Error updating favorites:', error);
         showToast({ message: getErrorMessage(error), status: 'error' });
-        // Refetch to resync state with server
         getFavoritesQuery.refetch();
       } finally {
-        // Use a small delay to prevent the useEffect from triggering immediately
-        // after the mutation completes but before React has finished processing
         setTimeout(() => {
           isMutatingRef.current = false;
         }, 100);
@@ -155,30 +148,6 @@ export default function useFavorites() {
     }
   };
 
-  const addFavoriteSkill = (skillId: string) => {
-    if (favorites.some((f) => f.skillId === skillId)) return;
-    saveFavorites([...favorites, { skillId }]);
-  };
-
-  const removeFavoriteSkill = (skillId: string) => {
-    saveFavorites(favorites.filter((f) => f.skillId !== skillId));
-  };
-
-  const isFavoriteSkill = (skillId: string | undefined | null) => {
-    if (!skillId) {
-      return false;
-    }
-    return favorites.some((f) => f.skillId === skillId);
-  };
-
-  const toggleFavoriteSkill = (skillId: string) => {
-    if (isFavoriteSkill(skillId)) {
-      removeFavoriteSkill(skillId);
-    } else {
-      addFavoriteSkill(skillId);
-    }
-  };
-
   /**
    * Reorder favorites and optionally persist the new order to the server.
    * This combines state update and persistence to avoid race conditions
@@ -195,7 +164,6 @@ export default function useFavorites() {
         } catch (error) {
           logger.error('Error reordering favorites:', error);
           showToast({ message: getErrorMessage(error), status: 'error' });
-          // Refetch to resync state with server
           getFavoritesQuery.refetch();
         } finally {
           setTimeout(() => {
@@ -217,20 +185,11 @@ export default function useFavorites() {
     isFavoriteModel,
     toggleFavoriteAgent,
     toggleFavoriteModel,
-    addFavoriteSkill,
-    removeFavoriteSkill,
-    isFavoriteSkill,
-    toggleFavoriteSkill,
     reorderFavorites,
-    /** Whether the favorites query is currently loading */
     isLoading: getFavoritesQuery.isLoading,
-    /** Whether there was an error fetching favorites */
     isError: getFavoritesQuery.isError,
-    /** Whether the update mutation is in progress */
     isUpdating: updateFavoritesMutation.isLoading,
-    /** Error from fetching favorites, if any */
     fetchError: getFavoritesQuery.error,
-    /** Error from updating favorites, if any */
     updateError: updateFavoritesMutation.error,
   };
 }
