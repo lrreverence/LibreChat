@@ -47,7 +47,7 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
       if (onSuccess) {
         onSuccess(newSkill._id);
       } else {
-        navigate(`/skills/${newSkill._id}`, { replace: true });
+        navigate(`/skills/${newSkill._id}/edit`, { replace: true });
       }
     },
     onError: () => {

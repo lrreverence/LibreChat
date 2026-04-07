@@ -61,12 +61,11 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
   }, [skill, reset]);
 
   const updateSkillMutation = useUpdateSkillMutation({
-    onSuccess: (updatedSkill) => {
+    onSuccess: () => {
       showToast({
         status: 'success',
         message: localize('com_ui_skill_updated'),
       });
-      navigate(`/skills/${updatedSkill._id}`, { replace: true });
     },
     onError: () => {
       showToast({
