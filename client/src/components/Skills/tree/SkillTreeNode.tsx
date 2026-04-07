@@ -109,6 +109,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
       ref={dragHandle}
       style={style}
       role="treeitem"
+      aria-label={node.data.name}
       aria-selected={isSelected}
       aria-expanded={isFolder ? isOpen : undefined}
       className={cn(

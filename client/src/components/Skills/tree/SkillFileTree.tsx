@@ -1,6 +1,7 @@
 import { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { Tree } from 'react-arborist';
 import SkillTreeNode, { TreeActionsContext } from './SkillTreeNode';
+import { useLocalize, type TranslationKeys } from '~/hooks';
 import type { NodeApi } from 'react-arborist';
 import type { TSkillNode } from 'librechat-data-provider';
 import type { SkillTreeData } from './SkillTreeNode';
@@ -59,8 +60,10 @@ export default function SkillFileTree({
   onDeleteNode,
   height,
 }: SkillFileTreeProps) {
+  const localize = useLocalize();
   const treeData = useMemo(() => buildTreeData(nodes), [nodes]);
   const treeActions = useMemo(() => ({ onDeleteNode }), [onDeleteNode]);
+  const treeLabel = localize('com_ui_skill_files' as TranslationKeys) || 'Skill files';
 
   const handleSelect = useCallback(
     (selectedNodes: NodeApi<SkillTreeData>[]) => {
@@ -98,7 +101,7 @@ export default function SkillFileTree({
     [onMoveNode],
   );
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerHeight, setContainerHeight] = useState(400);
 
   useEffect(() => {
@@ -119,7 +122,18 @@ export default function SkillFileTree({
 
   return (
     <TreeActionsContext.Provider value={treeActions}>
-      <div ref={containerRef} className="size-full px-2">
+      <div
+        ref={(el) => {
+          containerRef.current = el;
+          if (el) {
+            const inner = el.querySelector('[role="tree"]');
+            if (inner && !inner.getAttribute('aria-label')) {
+              inner.setAttribute('aria-label', treeLabel);
+            }
+          }
+        }}
+        className="size-full px-2"
+      >
         <Tree<SkillTreeData>
           data={treeData}
           selection={selectedNodeId ?? undefined}
