@@ -1,9 +1,14 @@
-import { useMemo, useCallback, useRef, useState, useEffect } from 'react';
-import { Tree } from 'react-arborist';
-import SkillTreeNode, { TreeActionsContext } from './SkillTreeNode';
-import type { NodeApi } from 'react-arborist';
+import { useMemo, useState, useCallback } from 'react';
 import type { TSkillNode } from 'librechat-data-provider';
-import type { SkillTreeData } from './SkillTreeNode';
+import SkillTreeRow from './SkillTreeRow';
+
+export interface SkillTreeData {
+  id: string;
+  name: string;
+  nodeType: 'file' | 'folder';
+  fileId?: string;
+  children?: SkillTreeData[];
+}
 
 interface SkillFileTreeProps {
   nodes: TSkillNode[];
@@ -12,7 +17,6 @@ interface SkillFileTreeProps {
   onRenameNode: (nodeId: string, newName: string) => void;
   onMoveNode: (nodeId: string, newParentId: string | null, index: number) => void;
   onDeleteNode: (nodeId: string) => void;
-  height?: number;
 }
 
 function buildTreeData(nodes: TSkillNode[]): SkillTreeData[] {
@@ -34,17 +38,14 @@ function buildTreeData(nodes: TSkillNode[]): SkillTreeData[] {
     if (!treeNode) {
       continue;
     }
-
     if (node.parentId) {
       const parent = nodeMap.get(node.parentId);
       if (parent?.children) {
         parent.children.push(treeNode);
-      } else {
-        roots.push(treeNode);
+        continue;
       }
-    } else {
-      roots.push(treeNode);
     }
+    roots.push(treeNode);
   }
 
   return roots;
@@ -55,86 +56,81 @@ export default function SkillFileTree({
   selectedNodeId,
   onSelectNode,
   onRenameNode,
-  onMoveNode,
+  onMoveNode: _onMoveNode,
   onDeleteNode,
-  height,
 }: SkillFileTreeProps) {
   const treeData = useMemo(() => buildTreeData(nodes), [nodes]);
-  const treeActions = useMemo(() => ({ onDeleteNode }), [onDeleteNode]);
+  const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const handleSelect = useCallback(
-    (selectedNodes: NodeApi<SkillTreeData>[]) => {
-      const selected = selectedNodes[0];
-      if (selected) {
-        onSelectNode(selected.id, selected.data.nodeType);
+  const toggleFolder = useCallback((id: string) => {
+    setOpenFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
       }
-    },
-    [onSelectNode],
-  );
+      return next;
+    });
+  }, []);
 
-  const handleRename = useCallback(
-    ({ id, name }: { id: string; name: string; node: NodeApi<SkillTreeData> }) => {
-      onRenameNode(id, name);
+  const startEditing = useCallback((id: string) => {
+    setEditingId(id);
+  }, []);
+
+  const stopEditing = useCallback(() => {
+    setEditingId(null);
+  }, []);
+
+  const submitRename = useCallback(
+    (id: string, newName: string) => {
+      const trimmed = newName.trim();
+      if (trimmed) {
+        onRenameNode(id, trimmed);
+      }
+      setEditingId(null);
     },
     [onRenameNode],
   );
 
-  const handleMove = useCallback(
-    ({
-      dragIds,
-      parentId,
-      index,
-    }: {
-      dragIds: string[];
-      dragNodes: NodeApi<SkillTreeData>[];
-      parentId: string | null;
-      parentNode: NodeApi<SkillTreeData> | null;
-      index: number;
-    }) => {
-      for (const id of dragIds) {
-        onMoveNode(id, parentId, index);
-      }
-    },
-    [onMoveNode],
-  );
+  const renderNode = (node: SkillTreeData, depth: number): React.ReactNode => {
+    const isOpen = openFolders.has(node.id);
+    const isSelected = selectedNodeId === node.id;
+    const isEditing = editingId === node.id;
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState(400);
-
-  useEffect(() => {
-    if (!containerRef.current) {
-      return;
-    }
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerHeight(entry.contentRect.height);
-      }
-    });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  const rowHeight = 34;
-  const resolvedHeight = height ?? containerHeight;
+    return (
+      <div key={node.id}>
+        <SkillTreeRow
+          node={node}
+          depth={depth}
+          isOpen={isOpen}
+          isSelected={isSelected}
+          isEditing={isEditing}
+          onSelect={onSelectNode}
+          onToggle={toggleFolder}
+          onStartEdit={startEditing}
+          onStopEdit={stopEditing}
+          onSubmitRename={submitRename}
+          onDelete={onDeleteNode}
+        />
+        {node.nodeType === 'folder' && node.children && (
+          <div
+            className="duration-[350ms] ease-[cubic-bezier(0.32,0.72,0,1)] grid transition-[grid-template-rows]"
+            style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
+          >
+            <div className="overflow-hidden">
+              {node.children.map((child) => renderNode(child, depth + 1))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <TreeActionsContext.Provider value={treeActions}>
-      <div ref={containerRef} className="size-full px-2">
-        <Tree<SkillTreeData>
-          data={treeData}
-          selection={selectedNodeId ?? undefined}
-          onSelect={handleSelect}
-          onRename={handleRename}
-          onMove={handleMove}
-          rowHeight={rowHeight}
-          indent={16}
-          width="100%"
-          height={resolvedHeight}
-          openByDefault={false}
-        >
-          {SkillTreeNode}
-        </Tree>
-      </div>
-    </TreeActionsContext.Provider>
+    <div className="size-full overflow-y-auto px-2 py-1">
+      {treeData.map((node) => renderNode(node, 0))}
+    </div>
   );
 }

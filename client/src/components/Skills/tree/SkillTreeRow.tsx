@@ -1,4 +1,4 @@
-import { memo, useCallback, useContext, createContext, useState } from 'react';
+import { memo, useCallback, useState, useEffect, useRef } from 'react';
 import {
   FileText,
   FileCode,
@@ -13,21 +13,7 @@ import {
 import { OGDialog, OGDialogTrigger, OGDialogTemplate } from '@librechat/client';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
-import type { NodeRendererProps } from 'react-arborist';
-
-interface SkillTreeData {
-  id: string;
-  name: string;
-  nodeType: 'file' | 'folder';
-  fileId?: string;
-  children?: SkillTreeData[];
-}
-
-interface TreeActions {
-  onDeleteNode: (nodeId: string) => void;
-}
-
-export const TreeActionsContext = createContext<TreeActions>({ onDeleteNode: () => {} });
+import type { SkillTreeData } from './SkillFileTree';
 
 const CODE_EXTENSIONS = new Set([
   '.js',
@@ -50,39 +36,72 @@ function getFileIcon(name: string) {
   const lower = name.toLowerCase();
   const ext = lower.slice(lower.lastIndexOf('.'));
   if (CODE_EXTENSIONS.has(ext)) {
-    return { Icon: FileCode, className: 'text-text-secondary' };
+    return FileCode;
   }
   if (JSON_EXTENSIONS.has(ext)) {
-    return { Icon: FileJson, className: 'text-text-secondary' };
+    return FileJson;
   }
   if (IMAGE_EXTENSIONS.has(ext)) {
-    return { Icon: FileImage, className: 'text-text-secondary' };
+    return FileImage;
   }
-  return { Icon: FileText, className: 'text-text-secondary' };
+  return FileText;
 }
 
-function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeData>) {
+interface SkillTreeRowProps {
+  node: SkillTreeData;
+  depth: number;
+  isOpen: boolean;
+  isSelected: boolean;
+  isEditing: boolean;
+  onSelect: (id: string, type: 'file' | 'folder') => void;
+  onToggle: (id: string) => void;
+  onStartEdit: (id: string) => void;
+  onStopEdit: () => void;
+  onSubmitRename: (id: string, newName: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function SkillTreeRow({
+  node,
+  depth,
+  isOpen,
+  isSelected,
+  isEditing,
+  onSelect,
+  onToggle,
+  onStartEdit,
+  onStopEdit,
+  onSubmitRename,
+  onDelete,
+}: SkillTreeRowProps) {
   const localize = useLocalize();
-  const isFolder = node.data.nodeType === 'folder';
-  const isOpen = node.isOpen;
-  const isSelected = node.isSelected;
-  const { onDeleteNode } = useContext(TreeActionsContext);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const isFolder = node.nodeType === 'folder';
+  const FileIcon = !isFolder ? getFileIcon(node.name) : null;
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
 
   const handleClick = useCallback(() => {
     if (isFolder) {
-      node.toggle();
+      onToggle(node.id);
     } else {
-      node.select();
+      onSelect(node.id, 'file');
     }
-  }, [node, isFolder]);
+  }, [isFolder, node.id, onToggle, onSelect]);
 
   const handleRename = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      node.edit();
+      onStartEdit(node.id);
     },
-    [node],
+    [node.id, onStartEdit],
   );
 
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
@@ -91,36 +110,33 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
   }, []);
 
   const handleDeleteConfirm = useCallback(() => {
-    onDeleteNode(node.id);
+    onDelete(node.id);
     setDeleteOpen(false);
-  }, [node.id, onDeleteNode]);
-
-  const fileIcon = !isFolder ? getFileIcon(node.data.name) : null;
+  }, [node.id, onDelete]);
 
   return (
     <div
-      ref={dragHandle}
-      style={style}
       role="treeitem"
       aria-selected={isSelected}
       aria-expanded={isFolder ? isOpen : undefined}
       className={cn(
         'group flex cursor-pointer items-center gap-1.5 rounded-lg py-1 pl-2 pr-1 text-sm',
         'transition-colors duration-100',
-        'duration-200 ease-out animate-in fade-in slide-in-from-top-1',
         isSelected
           ? 'bg-surface-active text-text-primary'
           : 'text-text-secondary hover:bg-surface-hover',
       )}
+      style={{ paddingLeft: `${8 + depth * 14}px` }}
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
           handleClick();
         }
         if (e.key === 'F2') {
-          node.edit();
+          onStartEdit(node.id);
         }
       }}
+      tabIndex={0}
     >
       {isFolder ? (
         <ChevronRight
@@ -154,29 +170,29 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           />
         </span>
       )}
-      {fileIcon && (
-        <fileIcon.Icon className={cn('size-4 shrink-0', fileIcon.className)} aria-hidden="true" />
-      )}
-      {node.isEditing ? (
+      {FileIcon && <FileIcon className="size-4 shrink-0 text-text-secondary" aria-hidden="true" />}
+      {isEditing ? (
         <input
+          ref={inputRef}
           type="text"
-          defaultValue={node.data.name}
-          ref={(el) => el?.focus()}
+          defaultValue={node.name}
           className="min-w-0 flex-1 rounded-md border-none bg-transparent py-0 pl-0 text-sm text-text-primary outline-none ring-1 ring-border-medium focus:ring-ring-primary"
-          onBlur={() => node.reset()}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={(e) => onSubmitRename(node.id, e.currentTarget.value)}
           onKeyDown={(e) => {
+            e.stopPropagation();
             if (e.key === 'Enter') {
-              node.submit(e.currentTarget.value);
+              onSubmitRename(node.id, e.currentTarget.value);
             }
             if (e.key === 'Escape') {
-              node.reset();
+              onStopEdit();
             }
           }}
         />
       ) : (
         <>
           <span className={cn('min-w-0 flex-1 truncate', isSelected && 'font-medium')}>
-            {node.data.name}
+            {node.name}
           </span>
           <div
             className={cn(
@@ -189,7 +205,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
               type="button"
               className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
               onClick={handleRename}
-              aria-label={`Rename ${node.data.name}`}
+              aria-label={`Rename ${node.name}`}
               tabIndex={-1}
             >
               <Pencil className="size-3.5" />
@@ -200,7 +216,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
                   type="button"
                   className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
                   onClick={handleDeleteClick}
-                  aria-label={`Delete ${node.data.name}`}
+                  aria-label={`Delete ${node.name}`}
                   tabIndex={-1}
                 >
                   <Trash className="size-3.5" />
@@ -213,8 +229,8 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
                 main={
                   <p className="text-left text-sm text-text-primary">
                     {isFolder
-                      ? `Delete folder "${node.data.name}" and all its contents?`
-                      : `Delete "${node.data.name}"?`}
+                      ? `Delete folder "${node.name}" and all its contents?`
+                      : `Delete "${node.name}"?`}
                   </p>
                 }
                 selection={{
@@ -232,5 +248,4 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
   );
 }
 
-export default memo(SkillTreeNode);
-export type { SkillTreeData };
+export default memo(SkillTreeRow);
