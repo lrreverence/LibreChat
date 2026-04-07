@@ -29,15 +29,17 @@ const cleanFavorites = (favorites: Favorite[]): Favorite[] => {
   if (!Array.isArray(favorites)) {
     return [];
   }
-  return favorites.map((f) => {
+  const cleaned: Favorite[] = [];
+  for (const f of favorites) {
     if (f.agentId) {
-      return { agentId: f.agentId };
+      cleaned.push({ agentId: f.agentId });
+    } else if (f.model && f.endpoint) {
+      cleaned.push({ model: f.model, endpoint: f.endpoint });
+    } else if (f.skillId) {
+      cleaned.push({ skillId: f.skillId });
     }
-    if (f.model && f.endpoint) {
-      return { model: f.model, endpoint: f.endpoint };
-    }
-    return f;
-  });
+  }
+  return cleaned;
 };
 
 export default function useFavorites() {
@@ -153,6 +155,30 @@ export default function useFavorites() {
     }
   };
 
+  const addFavoriteSkill = (skillId: string) => {
+    if (favorites.some((f) => f.skillId === skillId)) return;
+    saveFavorites([...favorites, { skillId }]);
+  };
+
+  const removeFavoriteSkill = (skillId: string) => {
+    saveFavorites(favorites.filter((f) => f.skillId !== skillId));
+  };
+
+  const isFavoriteSkill = (skillId: string | undefined | null) => {
+    if (!skillId) {
+      return false;
+    }
+    return favorites.some((f) => f.skillId === skillId);
+  };
+
+  const toggleFavoriteSkill = (skillId: string) => {
+    if (isFavoriteSkill(skillId)) {
+      removeFavoriteSkill(skillId);
+    } else {
+      addFavoriteSkill(skillId);
+    }
+  };
+
   /**
    * Reorder favorites and optionally persist the new order to the server.
    * This combines state update and persistence to avoid race conditions
@@ -191,6 +217,10 @@ export default function useFavorites() {
     isFavoriteModel,
     toggleFavoriteAgent,
     toggleFavoriteModel,
+    addFavoriteSkill,
+    removeFavoriteSkill,
+    isFavoriteSkill,
+    toggleFavoriteSkill,
     reorderFavorites,
     /** Whether the favorites query is currently loading */
     isLoading: getFavoritesQuery.isLoading,

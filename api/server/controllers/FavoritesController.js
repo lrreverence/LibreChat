@@ -27,6 +27,7 @@ const updateFavoritesController = async (req, res) => {
     for (const fav of favorites) {
       const hasAgent = !!fav.agentId;
       const hasModel = !!(fav.model && fav.endpoint);
+      const hasSkill = !!fav.skillId;
 
       if (fav.agentId && fav.agentId.length > MAX_STRING_LENGTH) {
         return res
@@ -43,16 +44,21 @@ const updateFavoritesController = async (req, res) => {
           .status(400)
           .json({ message: `endpoint exceeds maximum length of ${MAX_STRING_LENGTH}` });
       }
-
-      if (!hasAgent && !hasModel) {
-        return res.status(400).json({
-          message: 'Each favorite must have either agentId or model+endpoint',
-        });
+      if (fav.skillId && fav.skillId.length > MAX_STRING_LENGTH) {
+        return res
+          .status(400)
+          .json({ message: `skillId exceeds maximum length of ${MAX_STRING_LENGTH}` });
       }
 
-      if (hasAgent && hasModel) {
+      const types = [hasAgent, hasModel, hasSkill].filter(Boolean).length;
+      if (types === 0) {
         return res.status(400).json({
-          message: 'Favorite cannot have both agentId and model/endpoint',
+          message: 'Each favorite must have either agentId, model+endpoint, or skillId',
+        });
+      }
+      if (types > 1) {
+        return res.status(400).json({
+          message: 'Favorite cannot mix agentId, model/endpoint, and skillId',
         });
       }
     }

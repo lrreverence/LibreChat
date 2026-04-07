@@ -8,7 +8,7 @@ import type { TSkill } from 'librechat-data-provider';
 import type { AgentForm } from '~/common';
 import { useListSkillsQuery } from '~/data-provider';
 import { CategoryIcon } from '~/components/Prompts';
-import { useLocalize, useAuthContext, useCategories, useHasAccess } from '~/hooks';
+import { useLocalize, useAuthContext, useCategories, useHasAccess, useFavorites } from '~/hooks';
 import { cn } from '~/utils';
 
 interface SkillSelectDialogProps {
@@ -26,19 +26,7 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
   const { getValues, setValue } = useFormContext<AgentForm>();
   const [searchValue, setSearchValue] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>(SystemCategories.ALL);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-
-  const toggleFavorite = useCallback((skillId: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(skillId)) {
-        next.delete(skillId);
-      } else {
-        next.add(skillId);
-      }
-      return next;
-    });
-  }, []);
+  const { isFavoriteSkill, toggleFavoriteSkill } = useFavorites();
 
   const hasCreateAccess = useHasAccess({
     permissionType: PermissionTypes.SKILLS,
@@ -88,7 +76,7 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
     if (activeFilter === SKILL_MY) {
       filtered = filtered.filter((s) => s.author === user?.id);
     } else if (activeFilter === SKILL_FAVORITES) {
-      filtered = filtered.filter((s) => favorites.has(s._id));
+      filtered = filtered.filter((s) => isFavoriteSkill(s._id));
     } else if (activeFilter === SystemCategories.NO_CATEGORY) {
       filtered = filtered.filter((s) => !s.category);
     } else if (activeFilter !== SystemCategories.ALL) {
@@ -101,11 +89,11 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
     }
 
     return filtered;
-  }, [allSkills, activeFilter, searchValue, user?.id, favorites]);
+  }, [allSkills, activeFilter, searchValue, user?.id, isFavoriteSkill]);
 
   const renderSkillCard = (skill: TSkill) => {
     const selected = isAttached(skill._id);
-    const isFavorite = favorites.has(skill._id);
+    const isFavorite = isFavoriteSkill(skill._id);
     const isShared = skill.author !== user?.id && Boolean(skill.authorName);
     const isPublic = skill.isPublic === true;
     return (
@@ -137,7 +125,7 @@ function SkillSelectDialog({ isOpen, setIsOpen }: SkillSelectDialogProps) {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              toggleFavorite(skill._id);
+              toggleFavoriteSkill(skill._id);
             }}
             className={cn(
               'flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors',
