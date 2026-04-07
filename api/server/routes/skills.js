@@ -115,6 +115,44 @@ router.post('/', checkSkillCreate, async (req, res) => {
       );
     }
 
+    try {
+      const initialContent = `# ${result.name}\n\n${result.description || ''}\n`;
+      const fileId = crypto.randomUUID();
+      const dir = path.join(paths.uploads, req.user.id, 'skills', result._id.toString());
+      await fs.mkdir(dir, { recursive: true });
+      const filepath = path.join(dir, `${fileId}-SKILL.md`);
+      await fs.writeFile(filepath, initialContent, 'utf-8');
+
+      await createFile(
+        {
+          user: req.user.id,
+          file_id: fileId,
+          filename: 'SKILL.md',
+          filepath,
+          type: 'text/markdown',
+          bytes: Buffer.byteLength(initialContent),
+          context: 'skill_file',
+          source: 'local',
+        },
+        true,
+      );
+
+      await createSkillNode({
+        skillId: result._id,
+        parentId: null,
+        type: 'file',
+        name: 'SKILL.md',
+        fileId,
+        order: 0,
+        author: new ObjectId(req.user.id),
+      });
+    } catch (skillFileError) {
+      logger.error(
+        `[createSkill] Failed to create initial SKILL.md for skill ${result._id}:`,
+        skillFileError,
+      );
+    }
+
     res.status(201).json(result);
   } catch (error) {
     logger.error('[createSkill]', error);
