@@ -104,10 +104,17 @@ function SkillTreeRow({
     [node.id, onStartEdit],
   );
 
-  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDeleteOpen(true);
-  }, []);
+  const handleDeleteClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (e.shiftKey) {
+        onDelete(node.id);
+        return;
+      }
+      setDeleteOpen(true);
+    },
+    [node.id, onDelete],
+  );
 
   const handleDeleteConfirm = useCallback(() => {
     onDelete(node.id);
@@ -121,7 +128,6 @@ function SkillTreeRow({
       aria-expanded={isFolder ? isOpen : undefined}
       className={cn(
         'group flex cursor-pointer items-center gap-1.5 rounded-lg py-1 pl-2 pr-1 text-sm',
-        'transition-colors duration-100',
         isSelected
           ? 'bg-surface-active text-text-primary'
           : 'text-text-secondary hover:bg-surface-hover',
@@ -194,13 +200,7 @@ function SkillTreeRow({
           <span className={cn('min-w-0 flex-1 truncate', isSelected && 'font-medium')}>
             {node.name}
           </span>
-          <div
-            className={cn(
-              'ml-auto flex shrink-0 items-center gap-px',
-              'ease-[cubic-bezier(0.32,0.72,0,1)] opacity-0 transition-opacity duration-300',
-              'group-hover:opacity-100',
-            )}
-          >
+          <div className="ml-auto flex shrink-0 items-center gap-px opacity-0 group-hover:opacity-100">
             <button
               type="button"
               className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
