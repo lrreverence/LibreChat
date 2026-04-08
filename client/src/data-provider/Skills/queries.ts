@@ -8,9 +8,9 @@ import type t from 'librechat-data-provider';
  */
 export const useListSkillsQuery = <TData = t.TSkillListResponse>(
   params: t.TSkillListParams = {},
-  config?: UseQueryOptions<t.TSkillListResponse, unknown, TData>,
+  config?: UseQueryOptions<t.TSkillListResponse, Error, TData>,
 ): QueryObserverResult<TData> => {
-  return useQuery<t.TSkillListResponse, unknown, TData>(
+  return useQuery<t.TSkillListResponse, Error, TData>(
     [QueryKeys.skills, params],
     () => dataService.listSkills(params),
     {
