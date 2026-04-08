@@ -1,4 +1,4 @@
-import { useMemo, memo } from 'react';
+import { memo } from 'react';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -13,6 +13,22 @@ import type { PluggableList } from 'unified';
 import { codeNoExecution } from '~/components/Chat/Messages/Content/MarkdownComponents';
 import { cn, langSubset } from '~/utils';
 import { useLocalize } from '~/hooks';
+
+const REMARK_PLUGINS = [supersub, remarkGfm, [remarkMath, { singleDollarTextMath: false }]];
+
+const REHYPE_PLUGINS: PluggableList = [
+  [rehypeKatex],
+  [
+    rehypeHighlight,
+    {
+      detect: true,
+      ignoreMissing: true,
+      subset: langSubset,
+    },
+  ],
+];
+
+const MARKDOWN_COMPONENTS = { code: codeNoExecution };
 
 interface SkillContentEditorProps {
   name: string;
@@ -33,21 +49,7 @@ const SkillContentEditor: React.FC<SkillContentEditorProps> = ({
     formState: { errors },
   } = useFormContext();
 
-  const EditorIcon = useMemo(() => {
-    return isEditing ? Check : EditIcon;
-  }, [isEditing]);
-
-  const rehypePlugins: PluggableList = [
-    [rehypeKatex],
-    [
-      rehypeHighlight,
-      {
-        detect: true,
-        ignoreMissing: true,
-        subset: langSubset,
-      },
-    ],
-  ];
+  const EditorIcon = isEditing ? Check : EditIcon;
 
   return (
     <div className="flex max-h-[85vh] flex-col sm:max-h-[85vh]">
@@ -119,22 +121,17 @@ const SkillContentEditor: React.FC<SkillContentEditorProps> = ({
               <div
                 className="group/preview relative min-h-[6rem] overflow-y-auto text-sm sm:text-base"
                 style={{ maxHeight: '24rem' }}
-                onClick={() => setIsEditing(true)}
               >
                 {!field.value ? (
                   <p className="italic text-text-tertiary">{localize('com_ui_click_to_edit')}</p>
                 ) : (
                   <ReactMarkdown
-                    remarkPlugins={[
-                      /** @ts-ignore */
-                      supersub,
-                      remarkGfm,
-                      [remarkMath, { singleDollarTextMath: false }],
-                    ]}
                     /** @ts-ignore */
-                    rehypePlugins={rehypePlugins}
+                    remarkPlugins={REMARK_PLUGINS}
                     /** @ts-ignore */
-                    components={{ code: codeNoExecution }}
+                    rehypePlugins={REHYPE_PLUGINS}
+                    /** @ts-ignore */
+                    components={MARKDOWN_COMPONENTS}
                     className="markdown prose dark:prose-invert light w-full break-words text-text-primary"
                   >
                     {field.value}
