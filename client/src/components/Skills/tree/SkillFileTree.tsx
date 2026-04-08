@@ -1,9 +1,10 @@
 import { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { Tree } from 'react-arborist';
 import SkillTreeNode, { TreeActionsContext } from './SkillTreeNode';
-import { useLocalize, type TranslationKeys } from '~/hooks';
+import { useLocalize } from '~/hooks';
 import type { NodeApi } from 'react-arborist';
 import type { TSkillNode } from 'librechat-data-provider';
+import type { TranslationKeys } from '~/hooks';
 import type { SkillTreeData } from './SkillTreeNode';
 
 interface SkillFileTreeProps {

@@ -124,7 +124,16 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           handleClick();
         }
         if (e.key === 'F2') {
+          e.preventDefault();
           node.edit();
+        }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            onDeleteNode(node.id);
+          } else {
+            setDeleteOpen(true);
+          }
         }
       }}
     >
@@ -167,7 +176,9 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
         <input
           type="text"
           defaultValue={node.data.name}
-          ref={(el) => el?.focus()}
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus
+          aria-label={localize('com_ui_rename')}
           className="min-w-0 flex-1 rounded-md border-none bg-transparent py-0 pl-0 text-sm text-text-primary outline-none ring-1 ring-border-medium focus:ring-ring-primary"
           onBlur={() => node.reset()}
           onKeyDown={(e) => {
@@ -184,7 +195,7 @@ function SkillTreeNode({ node, style, dragHandle }: NodeRendererProps<SkillTreeD
           <span className={cn('min-w-0 flex-1 truncate', isSelected && 'font-medium')}>
             {node.data.name}
           </span>
-          <div className="ml-auto flex shrink-0 items-center gap-px opacity-0 group-hover:opacity-100">
+          <div className="ml-auto flex shrink-0 items-center gap-px opacity-0 group-focus-within:opacity-100 group-hover:opacity-100">
             <button
               type="button"
               className="rounded p-1 text-text-secondary transition-colors duration-100 hover:bg-surface-tertiary hover:text-text-primary"
