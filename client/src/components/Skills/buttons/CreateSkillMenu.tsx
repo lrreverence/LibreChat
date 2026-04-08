@@ -2,8 +2,8 @@ import { useRef, useCallback, useMemo } from 'react';
 import { Plus, PenLine, Upload, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Dropdown, useToastContext } from '@librechat/client';
-import type { Option } from '~/common';
 import type { ParsedSkillMd } from '../utils/parseSkillMd';
+import type { Option } from '~/common';
 import { parseSkillMd } from '../utils/parseSkillMd';
 import { useLocalize } from '~/hooks';
 

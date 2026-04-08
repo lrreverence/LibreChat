@@ -1,8 +1,7 @@
 import { format } from 'date-fns';
-import { Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, TooltipAnchor } from '@librechat/client';
-import { User, Calendar, EarthIcon, Sparkles } from 'lucide-react';
+import { Pencil, User, Calendar, EarthIcon, Sparkles } from 'lucide-react';
 import { InvocationMode } from 'librechat-data-provider';
 import type { TSkill } from 'librechat-data-provider';
 import type { TranslationKeys } from '~/hooks';

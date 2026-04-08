@@ -4,8 +4,7 @@ import { DropdownPopup } from '@librechat/client';
 import { useFormContext, Controller } from 'react-hook-form';
 import type { MenuItemProps } from '@librechat/client';
 import type { ReactNode } from 'react';
-import { useCategories } from '~/hooks';
-import { useLocalize } from '~/hooks';
+import { useCategories, useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
 interface CategorySelectorProps {

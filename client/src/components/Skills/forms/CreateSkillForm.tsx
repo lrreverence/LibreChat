@@ -1,10 +1,10 @@
-import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { Button, TextareaAutosize, Input, useToastContext } from '@librechat/client';
 import { InvocationMode } from 'librechat-data-provider';
 import type { TCreateSkillRequest } from 'librechat-data-provider';
-import InvocationModePicker from './InvocationModePicker';
 import { useCreateSkillMutation } from '~/data-provider';
+import InvocationModePicker from './InvocationModePicker';
 import CategorySelector from './CategorySelector';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
@@ -133,7 +133,7 @@ const CreateSkillForm = ({ defaultValues, onSuccess }: CreateSkillFormProps) => 
                 <TextareaAutosize
                   {...field}
                   id="skill-description"
-                  className="w-full resize-none rounded-xl border border-border-medium bg-transparent p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none"
+                  className="w-full resize-none rounded-xl border border-border-medium bg-transparent p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary"
                   minRows={2}
                   maxRows={6}
                   tabIndex={0}
