@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { Button, TextareaAutosize, Input, Skeleton, useToastContext } from '@librechat/client';
@@ -37,28 +36,21 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
       invocationMode: InvocationMode.auto,
       category: '',
     },
+    values: skill
+      ? {
+          name: skill.name,
+          description: skill.description,
+          invocationMode: skill.invocationMode,
+          category: skill.category ?? '',
+        }
+      : undefined,
   });
 
   const {
     control,
     handleSubmit,
-    reset,
     formState: { isDirty, isSubmitting },
   } = methods;
-
-  useEffect(() => {
-    if (skill) {
-      reset(
-        {
-          name: skill.name,
-          description: skill.description,
-          invocationMode: skill.invocationMode,
-          category: skill.category ?? '',
-        },
-        { keepDirtyValues: false },
-      );
-    }
-  }, [skill, reset]);
 
   const updateSkillMutation = useUpdateSkillMutation({
     onSuccess: () => {
@@ -172,7 +164,7 @@ const SkillForm = ({ skillId: skillIdProp }: { skillId?: string }) => {
                 <TextareaAutosize
                   {...field}
                   id="skill-description"
-                  className="w-full resize-none rounded-xl border border-border-medium bg-transparent p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none"
+                  className="w-full resize-none rounded-xl border border-border-medium bg-transparent p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-primary"
                   minRows={2}
                   maxRows={6}
                   tabIndex={0}
