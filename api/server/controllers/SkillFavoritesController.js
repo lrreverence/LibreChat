@@ -1,3 +1,4 @@
+const { logger } = require('@librechat/data-schemas');
 const { updateUser, getUserById } = require('~/models');
 
 /** Maximum number of skills a user can favorite. */
@@ -50,7 +51,7 @@ const updateSkillFavoritesController = async (req, res) => {
 
     res.status(200).json(user.skillFavorites ?? []);
   } catch (error) {
-    console.error('Error updating skill favorites:', error);
+    logger.error('[updateSkillFavorites]', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -64,16 +65,10 @@ const getSkillFavoritesController = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    let skillFavorites = user.skillFavorites || [];
-
-    if (!Array.isArray(skillFavorites)) {
-      skillFavorites = [];
-      await updateUser(userId, { skillFavorites: [] });
-    }
-
+    const skillFavorites = Array.isArray(user.skillFavorites) ? user.skillFavorites : [];
     res.status(200).json(skillFavorites);
   } catch (error) {
-    console.error('Error fetching skill favorites:', error);
+    logger.error('[getSkillFavorites]', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
