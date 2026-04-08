@@ -13,6 +13,7 @@ const skillNodeSchema = new Schema<ISkillNodeDocument>(
       type: Schema.Types.ObjectId,
       ref: 'SkillNode',
       default: null,
+      index: true,
     },
     type: {
       type: String,
@@ -47,5 +48,6 @@ const skillNodeSchema = new Schema<ISkillNodeDocument>(
 );
 
 skillNodeSchema.index({ skillId: 1, parentId: 1 });
+skillNodeSchema.index({ skillId: 1, order: 1, name: 1 });
 
 export default skillNodeSchema;

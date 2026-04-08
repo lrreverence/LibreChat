@@ -50,5 +50,6 @@ const skillSchema = new Schema<ISkillDocument>(
 );
 
 skillSchema.index({ updatedAt: -1, _id: 1 });
+skillSchema.index({ author: 1, updatedAt: -1 });
 
 export default skillSchema;
