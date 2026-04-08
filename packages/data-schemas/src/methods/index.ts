@@ -46,8 +46,10 @@ import { createTransactionMethods, type TransactionMethods } from './transaction
 import { createSpendTokensMethods, type SpendTokensMethods } from './spendTokens';
 import { createPromptMethods, type PromptMethods, type PromptDeps } from './prompt';
 /* Skills */
-import { createSkillMethods, type SkillMethods, type SkillDeps } from './skill';
-import { createSkillNodeMethods, type SkillNodeMethods, type SkillNodeDeps } from './skillNode';
+import { createSkillMethods } from './skill';
+import { createSkillNodeMethods } from './skillNode';
+import type { SkillMethods, SkillDeps } from './skill';
+import type { SkillNodeMethods, SkillNodeDeps } from './skillNode';
 /* Tier 5 — Agent */
 import { createAgentMethods, type AgentMethods, type AgentDeps } from './agent';
 /* Config */

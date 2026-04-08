@@ -1,6 +1,6 @@
 import { ResourceType } from 'librechat-data-provider';
-import type { Model, Types } from 'mongoose';
-import type { IAclEntry, ISkillDocument } from '~/types';
+import type { Model, Types, FilterQuery } from 'mongoose';
+import type { IAclEntry, ISkill, ISkillDocument } from '~/types';
 import { isValidObjectIdString } from '~/utils/objectId';
 import logger from '~/config/winston';
 
@@ -14,40 +14,55 @@ export interface SkillDeps {
   ) => Promise<Types.ObjectId[]>;
 }
 
+/** Filter shape accepted by the list endpoint, beyond the access ID set. */
+export interface SkillListFilters {
+  name?: RegExp;
+  category?: string;
+  isPublic?: boolean;
+}
+
+/** Lean shape returned by `.lean()` queries — author/_id stay as ObjectId. */
+export type ISkillLean = Omit<ISkill, 'author'> & {
+  _id: Types.ObjectId;
+  author: Types.ObjectId;
+};
+
+/** Public shape returned to API consumers — author serialized to string. */
+export type ISkillPublic = Omit<ISkillLean, 'author'> & { author: string };
+
 export function createSkillMethods(mongoose: typeof import('mongoose'), deps: SkillDeps) {
   const { getSoleOwnedResourceIds } = deps;
   const { ObjectId } = mongoose.Types;
 
-  /**
-   * Create a new skill document.
-   */
+  function getSkillModel(): Model<ISkillDocument> {
+    return mongoose.models.Skill as Model<ISkillDocument>;
+  }
+
+  /** Create a new skill document. */
   async function createSkill(data: Partial<ISkillDocument>) {
-    const Skill = mongoose.models.Skill as Model<ISkillDocument>;
+    const Skill = getSkillModel();
     const created = await Skill.create(data);
-    return Skill.findById(created._id).lean();
+    return created.toObject() as ISkillLean;
   }
 
-  /**
-   * Get a skill by its ID.
-   */
-  async function getSkillById({ _id }: { _id: string }) {
-    const Skill = mongoose.models.Skill as Model<ISkillDocument>;
-    return Skill.findById(_id).lean();
+  /** Get a skill by its ID. */
+  async function getSkillById({ _id }: { _id: string | Types.ObjectId }) {
+    const Skill = getSkillModel();
+    return Skill.findById(_id).lean<ISkillLean | null>();
   }
 
-  /**
-   * Update a skill by its ID.
-   */
+  /** Update a skill by its ID. */
   async function updateSkill({ _id, data }: { _id: string; data: Partial<ISkillDocument> }) {
-    const Skill = mongoose.models.Skill as Model<ISkillDocument>;
-    return Skill.findByIdAndUpdate(_id, data, { new: true }).lean();
+    const Skill = getSkillModel();
+    return Skill.findByIdAndUpdate(_id, data, {
+      new: true,
+      runValidators: true,
+    }).lean<ISkillLean | null>();
   }
 
-  /**
-   * Delete a skill and remove all associated ACL permissions.
-   */
+  /** Delete a skill and remove all associated ACL permissions. */
   async function deleteSkill({ _id }: { _id: string }) {
-    const Skill = mongoose.models.Skill as Model<ISkillDocument>;
+    const Skill = getSkillModel();
     const response = await Skill.deleteOne({ _id });
 
     if (!response || response.deletedCount === 0) {
@@ -77,24 +92,22 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
     after = null,
   }: {
     accessibleIds?: Types.ObjectId[];
-    otherParams?: Record<string, unknown>;
+    otherParams?: SkillListFilters;
     limit?: number | null;
     after?: string | null;
   }) {
-    const Skill = mongoose.models.Skill as Model<ISkillDocument>;
+    const Skill = getSkillModel();
     const isPaginated = limit !== null && limit !== undefined;
-    const normalizedLimit = isPaginated
-      ? Math.min(Math.max(1, parseInt(String(limit)) || 20), 100)
-      : null;
+    const normalizedLimit = isPaginated ? Math.min(Math.max(1, limit ?? 20), 100) : null;
 
-    const baseQuery: Record<string, unknown> = {
+    const baseQuery: FilterQuery<ISkillDocument> = {
       ...otherParams,
       _id: { $in: accessibleIds },
     };
 
-    let matchQuery: Record<string, unknown> = baseQuery;
+    let matchQuery: FilterQuery<ISkillDocument> = baseQuery;
 
-    if (after && typeof after === 'string' && after !== 'undefined' && after !== 'null') {
+    if (after && after !== 'undefined' && after !== 'null') {
       try {
         const cursor = JSON.parse(Buffer.from(after, 'base64').toString('utf8'));
         const { updatedAt, _id } = cursor;
@@ -107,7 +120,7 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
         ) {
           logger.warn('[getListSkillsByAccess] Invalid cursor fields, skipping cursor condition');
         } else {
-          const cursorCondition = {
+          const cursorCondition: FilterQuery<ISkillDocument> = {
             $or: [
               { updatedAt: { $lt: new Date(updatedAt) } },
               {
@@ -117,10 +130,7 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
             ],
           };
 
-          matchQuery =
-            Object.keys(baseQuery).length > 0
-              ? { $and: [baseQuery, cursorCondition] }
-              : cursorCondition;
+          matchQuery = { $and: [baseQuery, cursorCondition] };
         }
       } catch (error) {
         logger.warn('Invalid cursor:', (error as Error).message);
@@ -137,26 +147,23 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
       findQuery.limit(normalizedLimit + 1);
     }
 
-    const skills = await findQuery.lean();
+    const skills = await findQuery.lean<ISkillLean[]>();
 
     const hasMore = isPaginated && normalizedLimit ? skills.length > normalizedLimit : false;
-    const data = (isPaginated && normalizedLimit ? skills.slice(0, normalizedLimit) : skills).map(
-      (skill) => {
-        const mapped = skill as Record<string, unknown>;
-        if (mapped.author) {
-          mapped.author = (mapped.author as Types.ObjectId).toString();
-        }
-        return mapped;
-      },
-    );
+    const sliced = isPaginated && normalizedLimit ? skills.slice(0, normalizedLimit) : skills;
+
+    const data: ISkillPublic[] = sliced.map((skill) => ({
+      ...skill,
+      author: skill.author.toString(),
+    }));
 
     let nextCursor: string | null = null;
     if (isPaginated && hasMore && data.length > 0 && normalizedLimit) {
-      const lastSkill = skills[normalizedLimit - 1] as Record<string, unknown>;
+      const lastSkill = skills[normalizedLimit - 1];
       nextCursor = Buffer.from(
         JSON.stringify({
           updatedAt: (lastSkill.updatedAt as Date).toISOString(),
-          _id: (lastSkill._id as Types.ObjectId).toString(),
+          _id: lastSkill._id.toString(),
         }),
       ).toString('base64');
     }
@@ -164,8 +171,8 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
     return {
       object: 'list' as const,
       data,
-      first_id: data.length > 0 ? (data[0]._id as Types.ObjectId).toString() : null,
-      last_id: data.length > 0 ? (data[data.length - 1]._id as Types.ObjectId).toString() : null,
+      first_id: data.length > 0 ? data[0]._id.toString() : null,
+      last_id: data.length > 0 ? data[data.length - 1]._id.toString() : null,
       has_more: hasMore,
       after: nextCursor,
     };
@@ -173,22 +180,20 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
 
   /**
    * Deletes skills solely owned by the user and cleans up their ACLs.
-   * Groups with other owners are left intact; the caller is responsible for
-   * removing the user's own ACL principal entries separately.
-   *
-   * Also handles legacy (pre-ACL) skills that only have the author field set,
-   * ensuring they are not orphaned if the permission migration has not been run.
+   * Wraps the multi-collection delete in a transaction so a partial failure
+   * leaves neither the skills nor the ACL entries in an inconsistent state.
    */
   async function deleteUserSkills(userId: string) {
-    try {
-      const Skill = mongoose.models.Skill as Model<ISkillDocument>;
-      const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
+    const Skill = getSkillModel();
+    const AclEntry = mongoose.models.AclEntry as Model<IAclEntry>;
+    const userObjectId = new ObjectId(userId);
 
-      const userObjectId = new ObjectId(userId);
+    let allSkillIdsToDelete: Types.ObjectId[] = [];
+    try {
       const soleOwnedIds = await getSoleOwnedResourceIds(userObjectId, ResourceType.SKILL);
 
-      const authoredSkills = await Skill.find({ author: userObjectId }).select('_id').lean();
-      const authoredSkillIds = authoredSkills.map((s) => s._id);
+      const distinctIds = await Skill.distinct('_id', { author: userObjectId });
+      const authoredSkillIds: Types.ObjectId[] = distinctIds as unknown as Types.ObjectId[];
 
       const migratedEntries =
         authoredSkillIds.length > 0
@@ -202,20 +207,32 @@ export function createSkillMethods(mongoose: typeof import('mongoose'), deps: Sk
       const migratedIds = new Set(migratedEntries.map((e) => e.resourceId.toString()));
       const legacySkillIds = authoredSkillIds.filter((id) => !migratedIds.has(id.toString()));
 
-      const allSkillIdsToDelete = [...soleOwnedIds, ...legacySkillIds];
+      allSkillIdsToDelete = [...soleOwnedIds, ...legacySkillIds];
 
       if (allSkillIdsToDelete.length === 0) {
         return;
       }
-
-      await AclEntry.deleteMany({
-        resourceType: ResourceType.SKILL,
-        resourceId: { $in: allSkillIdsToDelete },
-      });
-
-      await Skill.deleteMany({ _id: { $in: allSkillIdsToDelete } });
     } catch (error) {
-      logger.error('[deleteUserSkills] General error:', error);
+      logger.error('[deleteUserSkills] discovery phase failed', error);
+      return;
+    }
+
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await Skill.deleteMany({ _id: { $in: allSkillIdsToDelete } }, { session });
+        await AclEntry.deleteMany(
+          {
+            resourceType: ResourceType.SKILL,
+            resourceId: { $in: allSkillIdsToDelete },
+          },
+          { session },
+        );
+      });
+    } catch (error) {
+      logger.error('[deleteUserSkills] transaction failed', error);
+    } finally {
+      await session.endSession();
     }
   }
 
