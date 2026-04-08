@@ -224,17 +224,19 @@ export default function AgentConfig() {
                   id="name"
                   type="text"
                   placeholder={localize('com_agents_name_placeholder')}
-                  aria-label="Agent name"
+                  aria-label={localize('com_ui_agent_name')}
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? 'agent-name-error' : undefined}
                 />
-                <div
-                  className={cn(
-                    'mt-1 w-56 text-sm text-red-500',
-                    errors.name ? 'visible h-auto' : 'invisible h-0',
-                  )}
-                  role="alert"
-                >
-                  {errors.name ? errors.name.message : ' '}
-                </div>
+                {errors.name && (
+                  <div
+                    id="agent-name-error"
+                    className="mt-1 w-56 text-sm text-red-500"
+                    role="alert"
+                  >
+                    {errors.name.message}
+                  </div>
+                )}
               </>
             )}
           />
@@ -265,7 +267,7 @@ export default function AgentConfig() {
                 id="description"
                 type="text"
                 placeholder={localize('com_agents_description_placeholder')}
-                aria-label="Agent description"
+                aria-label={localize('com_ui_agent_description')}
               />
             )}
           />
@@ -288,8 +290,6 @@ export default function AgentConfig() {
             type="button"
             onClick={() => setActivePanel(Panel.model)}
             className="btn btn-neutral border-token-border-light relative h-9 w-full rounded-lg font-medium"
-            aria-haspopup="true"
-            aria-expanded="false"
           >
             <div className="flex w-full items-center gap-2">
               {Icon && (
@@ -365,7 +365,7 @@ export default function AgentConfig() {
                           );
                         }}
                         className="ml-2 flex-shrink-0 text-text-secondary transition-colors hover:text-text-primary"
-                        aria-label={`${localize('com_ui_remove')} ${skillName}`}
+                        aria-label={localize('com_ui_remove_skill_var', { 0: skillName })}
                       >
                         <X className="h-4 w-4" aria-hidden="true" />
                       </button>
@@ -500,7 +500,7 @@ export default function AgentConfig() {
                       id="support-contact-name"
                       type="text"
                       placeholder={localize('com_ui_support_contact_name_placeholder')}
-                      aria-label="Support contact name"
+                      aria-label={localize('com_ui_support_contact_name')}
                       aria-invalid={error ? 'true' : 'false'}
                       aria-describedby={error ? 'support-contact-name-error' : undefined}
                     />
@@ -542,7 +542,7 @@ export default function AgentConfig() {
                       id="support-contact-email"
                       type="email"
                       placeholder={localize('com_ui_support_contact_email_placeholder')}
-                      aria-label="Support contact email"
+                      aria-label={localize('com_ui_support_contact_email')}
                       aria-invalid={error ? 'true' : 'false'}
                       aria-describedby={error ? 'support-contact-email-error' : undefined}
                     />

@@ -90,6 +90,17 @@ export default function PublicSharingToggle({
           isPublic ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0',
         )}
         style={{ overflow: isPublic ? 'visible' : 'hidden' }}
+        aria-hidden={!isPublic}
+        ref={(el) => {
+          if (!el) {
+            return;
+          }
+          if (isPublic) {
+            el.removeAttribute('inert');
+          } else {
+            el.setAttribute('inert', '');
+          }
+        }}
       >
         <div
           className={cn(

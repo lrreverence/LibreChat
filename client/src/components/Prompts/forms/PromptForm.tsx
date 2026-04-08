@@ -585,7 +585,17 @@ const PromptForm = ({ promptId: promptIdProp }: { promptId?: string }) => {
 
           {/* Mobile Versions Panel */}
           <div
-            ref={sidePanelRef}
+            ref={(el) => {
+              (sidePanelRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+              if (!el) {
+                return;
+              }
+              if (showSidePanel) {
+                el.removeAttribute('inert');
+              } else {
+                el.setAttribute('inert', '');
+              }
+            }}
             className={cn(
               'fixed right-0 top-0 z-[110] flex h-full flex-col border-l border-border-medium bg-surface-primary-alt shadow-xl lg:hidden',
               showSidePanel ? 'translate-x-0' : 'translate-x-full',
@@ -597,7 +607,8 @@ const PromptForm = ({ promptId: promptIdProp }: { promptId?: string }) => {
             role="dialog"
             aria-modal="true"
             aria-label={localize('com_ui_versions')}
-            inert={!showSidePanel ? '' : undefined}
+            aria-hidden={!showSidePanel}
+            tabIndex={!showSidePanel ? -1 : undefined}
           >
             <div className="flex items-center justify-between px-4 py-2">
               <h2 className="text-sm font-semibold text-text-primary">

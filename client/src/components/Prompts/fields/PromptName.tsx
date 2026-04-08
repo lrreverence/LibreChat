@@ -121,29 +121,36 @@ const PromptName: React.FC<Props> = ({ name, isLoading = false, isError = false,
           }}
           className="h-8 min-w-0 flex-1 cursor-text truncate pl-2 text-left text-base font-semibold text-text-primary transition-colors hover:text-text-secondary focus:outline-none"
           title={newName}
-          aria-label={localize('com_ui_edit') + ': ' + (newName ?? '')}
+          aria-label={localize('com_ui_edit_var', { 0: newName ?? '' })}
         >
           {newName}
         </button>
       )}
-      <div className="ml-1.5 flex shrink-0 items-center justify-center">
+      <div
+        className="ml-1.5 flex shrink-0 items-center justify-center"
+        role="status"
+        aria-live="polite"
+      >
         {saveStatus === 'saving' && (
-          <Loader2
-            className="size-4 animate-spin text-text-secondary"
-            aria-label={localize('com_ui_saving')}
-          />
+          <>
+            <Loader2 className="size-4 animate-spin text-text-secondary" aria-hidden="true" />
+            <span className="sr-only">{localize('com_ui_saving')}</span>
+          </>
         )}
         {saveStatus === 'saved' && (
-          <Check
-            className="size-4 text-green-500 transition-opacity duration-300"
-            aria-label={localize('com_ui_saved')}
-          />
+          <>
+            <Check
+              className="size-4 text-green-500 transition-opacity duration-300"
+              aria-hidden="true"
+            />
+            <span className="sr-only">{localize('com_ui_saved')}</span>
+          </>
         )}
         {saveStatus === 'error' && (
-          <X
-            className="size-4 text-red-500 transition-opacity duration-300"
-            aria-label={localize('com_ui_error')}
-          />
+          <>
+            <X className="size-4 text-red-500 transition-opacity duration-300" aria-hidden="true" />
+            <span className="sr-only">{localize('com_ui_error')}</span>
+          </>
         )}
         {saveStatus === 'idle' && !isEditing && (
           <Pencil
