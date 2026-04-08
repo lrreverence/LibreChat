@@ -268,20 +268,30 @@ export const agents = ({ path = '', options }: { path?: string; options?: object
   return url;
 };
 
-export const skills = ({ path = '', options }: { path?: string; options?: object }) => {
+export type SkillsListQuery = {
+  search?: string;
+  category?: string;
+  isPublic?: boolean;
+  limit?: number;
+  after?: string;
+};
+
+export const skills = ({ path = '', options }: { path?: string; options?: SkillsListQuery }) => {
   let url = `${BASE_URL}/api/skills`;
 
   if (path && path !== '') {
-    url += `/${path}`;
+    url += `/${encodeURIComponent(path)}`;
   }
 
   if (options) {
-    const filtered = Object.entries(options as Record<string, unknown>).filter(
-      ([, v]) => v != null,
-    );
+    const filtered: [string, string][] = [];
+    for (const [k, v] of Object.entries(options)) {
+      if (v != null) {
+        filtered.push([k, String(v)]);
+      }
+    }
     if (filtered.length > 0) {
-      const queryParams = new URLSearchParams(filtered.map(([k, v]) => [k, String(v)])).toString();
-      url += `?${queryParams}`;
+      url += `?${new URLSearchParams(filtered).toString()}`;
     }
   }
 

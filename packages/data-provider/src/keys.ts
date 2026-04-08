@@ -70,6 +70,9 @@ export enum QueryKeys {
   skill = 'skill',
   skillTree = 'skillTree',
   skillNodeContent = 'skillNodeContent',
+  skillFavorites = 'skillFavorites',
+  /* Favorites */
+  favorites = 'favorites',
 }
 
 // Dynamic query keys that require parameters
