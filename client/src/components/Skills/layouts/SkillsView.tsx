@@ -6,6 +6,7 @@ import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import type { ParsedSkillMd } from '~/components/Skills/utils/parseSkillMd';
 import { SkillFileTree, SkillFileEditor, SkillFilePreview } from '~/components/Skills/tree';
 import {
+  useGetSkillByIdQuery,
   useGetSkillTreeQuery,
   useGetSkillNodeContentQuery,
   useCreateSkillNodeMutation,
@@ -78,13 +79,24 @@ function ToolbarButton({
 }
 
 function FilePanel({ skillId, nodeId }: { skillId: string; nodeId: string }) {
-  const { data, isLoading } = useGetSkillNodeContentQuery(skillId, nodeId);
+  const localize = useLocalize();
+  const { data, isLoading, isError } = useGetSkillNodeContentQuery(skillId, nodeId);
 
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center bg-presentation">
         <Spinner className="text-text-tertiary" />
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SkillState
+        variant="error"
+        title={localize('com_ui_skill_load_error')}
+        description={localize('com_ui_skill_not_found_description')}
+      />
     );
   }
 
@@ -122,7 +134,11 @@ function TreeView({
     };
   }, []);
 
-  const { data: treeData, isLoading: treeLoading } = useGetSkillTreeQuery(skillId);
+  const {
+    data: treeData,
+    isLoading: treeLoading,
+    isError: treeError,
+  } = useGetSkillTreeQuery(skillId);
   const createNode = useCreateSkillNodeMutation(skillId);
   const updateNode = useUpdateSkillNodeMutation(skillId);
   const deleteNode = useDeleteSkillNodeMutation(skillId);
@@ -297,6 +313,12 @@ function TreeView({
             <div className="flex h-full items-center justify-center">
               <Spinner className="size-4 text-text-tertiary" />
             </div>
+          ) : treeError ? (
+            <SkillState
+              variant="error"
+              title={localize('com_ui_skills_load_error')}
+              description={localize('com_ui_skill_not_found_description')}
+            />
           ) : (
             <SkillFileTree
               nodes={treeData?.nodes ?? []}
@@ -331,9 +353,14 @@ function TreeView({
 export default function SkillsView() {
   const { skillId, nodeId } = useParams();
   const location = useLocation();
+  const localize = useLocalize();
   const { user, roles } = useAuthContext();
   const isNew = skillId === undefined;
   const isEdit = location.pathname.endsWith('/edit');
+
+  const { isError: skillNotFound, isLoading: skillLoading } = useGetSkillByIdQuery(skillId, {
+    enabled: !!skillId,
+  });
 
   const hasAccess = useHasAccess({
     permissionType: PermissionTypes.SKILLS,
@@ -379,6 +406,22 @@ export default function SkillsView() {
   }
 
   if (skillId) {
+    if (skillLoading) {
+      return (
+        <div className="flex h-full w-full flex-col items-center justify-center bg-presentation">
+          <Spinner className="text-text-secondary" />
+        </div>
+      );
+    }
+    if (skillNotFound) {
+      return (
+        <SkillState
+          variant="error"
+          title={localize('com_ui_skill_not_found')}
+          description={localize('com_ui_skill_not_found_description')}
+        />
+      );
+    }
     return <TreeView skillId={skillId} nodeId={nodeId} isEdit={isEdit} />;
   }
 
